@@ -1,12 +1,9 @@
 """Tests for the TestRunner orchestrator."""
 
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
-import pytest
-
+from src.reporting.models import DiagnosticRun, TestStatus
 from src.reporting.test_runner import TestRunner
-from src.reporting.models import TestResult, TestStatus, DiagnosticRun
-from tests.conftest import MOCK_GPU_INFO
 
 
 class TestRunnerRegistration:
@@ -70,7 +67,9 @@ class TestRunnerExecution:
         assert results[0].status == TestStatus.SKIP
 
     @patch("src.diagnostics.deployment.pynvml")
-    def test_run_level_returns_diagnostic_run(self, mock_nvml, mock_gpu_info, mock_config, mock_profile):
+    def test_run_level_returns_diagnostic_run(
+        self, mock_nvml, mock_gpu_info, mock_config, mock_profile,
+    ):
         mock_nvml.NVMLError = Exception
         mock_nvml.nvmlInit.return_value = None
         mock_nvml.nvmlShutdown.return_value = None

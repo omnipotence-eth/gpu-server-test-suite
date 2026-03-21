@@ -69,7 +69,7 @@ def query_pcie_replay_counter(gpu_index: int = 0) -> int:
     A non-zero value on a fresh boot may indicate a hardware problem.
     """
     try:
-        result = subprocess.run(
+        subprocess.run(
             [
                 "nvidia-smi",
                 f"--id={gpu_index}",

@@ -2,8 +2,6 @@
 
 from dataclasses import replace
 
-import pytest
-
 from src.diagnostics.gpu_health import (
     _check_clocks_responsive,
     _check_power_baseline,
@@ -12,7 +10,6 @@ from src.diagnostics.gpu_health import (
     run_gpu_health_checks,
 )
 from src.reporting.models import TestStatus
-from tests.conftest import MOCK_GPU_INFO
 
 
 class TestTemperatureCheck:

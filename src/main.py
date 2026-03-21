@@ -13,11 +13,9 @@ Usage:
 """
 
 import json
-import os
 import sys
 import time
 import uuid
-from datetime import datetime, timezone
 from pathlib import Path
 
 import click
@@ -26,10 +24,10 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
-from src.inventory.gpu_inventory import get_all_gpus, get_gpu_count
+from src.inventory.gpu_inventory import get_all_gpus
 from src.inventory.pcie_topology import get_pcie_topology
 from src.inventory.system_info import get_system_info
-from src.reporting.models import DiagnosticRun, TestStatus
+from src.reporting.models import TestStatus
 
 console = Console()
 
@@ -70,7 +68,8 @@ def _print_inventory(gpu_infos, system_info, pcie_infos):
     sys_table.add_column("Field", style="bold cyan")
     sys_table.add_column("Value")
     sys_table.add_row("Hostname", system_info.hostname)
-    sys_table.add_row("CPU", f"{system_info.cpu_model} ({system_info.cpu_cores}C/{system_info.cpu_threads}T)")
+    cpu_str = f"{system_info.cpu_model} ({system_info.cpu_cores}C/{system_info.cpu_threads}T)"
+    sys_table.add_row("CPU", cpu_str)
     sys_table.add_row("RAM", f"{system_info.ram_total_gib} GiB")
     sys_table.add_row("OS", system_info.os_name)
     sys_table.add_row("Driver", system_info.driver_version)
@@ -92,8 +91,10 @@ def _print_inventory(gpu_infos, system_info, pcie_infos):
         gpu_table.add_row("Power", f"{gpu.power_draw_w:.1f} W / {gpu.power_limit_w:.1f} W limit")
         gpu_table.add_row("Compute Cap.", gpu.compute_capability)
         gpu_table.add_row("P-State", gpu.pstate)
-        gpu_table.add_row("Clocks (Graphics)", f"{gpu.clock_graphics_mhz} / {gpu.clock_graphics_max_mhz} MHz")
-        gpu_table.add_row("Clocks (Memory)", f"{gpu.clock_memory_mhz} / {gpu.clock_memory_max_mhz} MHz")
+        gfx = f"{gpu.clock_graphics_mhz} / {gpu.clock_graphics_max_mhz} MHz"
+        mem = f"{gpu.clock_memory_mhz} / {gpu.clock_memory_max_mhz} MHz"
+        gpu_table.add_row("Clocks (Graphics)", gfx)
+        gpu_table.add_row("Clocks (Memory)", mem)
 
         # PCIe info
         pcie = next((p for p in pcie_infos if p.gpu_index == gpu.index), None)
@@ -255,15 +256,15 @@ def diag(level, test_name, output_format, inject_fault):
     console.print(f"Profile: {profile_name} | GPU(s): {len(gpu_infos)}\n")
 
     # Import all diagnostic test modules
+    from src.diagnostics.compute_stress import run_compute_stress
     from src.diagnostics.deployment import run_deployment_checks
     from src.diagnostics.gpu_health import run_gpu_health_checks
-    from src.diagnostics.pcie_validation import run_pcie_validation
+    from src.diagnostics.memory_bandwidth import run_memory_bandwidth
     from src.diagnostics.memory_test import run_memory_test
     from src.diagnostics.pcie_bandwidth import run_pcie_bandwidth
-    from src.diagnostics.memory_bandwidth import run_memory_bandwidth
-    from src.diagnostics.compute_stress import run_compute_stress
-    from src.diagnostics.sm_stress import run_sm_stress
+    from src.diagnostics.pcie_validation import run_pcie_validation
     from src.diagnostics.power_test import run_power_test
+    from src.diagnostics.sm_stress import run_sm_stress
 
     # Map test names to runner functions
     test_registry = {
@@ -308,7 +309,7 @@ def diag(level, test_name, output_format, inject_fault):
                     test_name=test,
                     status=TestStatus.SKIP,
                     duration_seconds=0.0,
-                    message=f"Test module not yet implemented",
+                    message="Test module not yet implemented",
                 )
             )
             console.print(f"[dim]Skipping '{test}' — not yet implemented[/dim]")
@@ -347,7 +348,9 @@ def diag(level, test_name, output_format, inject_fault):
 @click.option("--interval", default=5, help="Polling interval in seconds.")
 def monitor(interval):
     """Start background GPU health monitoring."""
-    console.print(f"[bold blue]Health monitoring — interval: {interval}s (Ctrl+C to stop)[/bold blue]")
+    console.print(
+        f"[bold blue]Health monitoring — interval: {interval}s (Ctrl+C to stop)[/bold blue]"
+    )
     console.print("[dim]Phase 3 implementation — health_daemon.py[/dim]")
     # Placeholder for Phase 3
     console.print("[yellow]Monitor not yet implemented. Coming in Phase 3.[/yellow]")

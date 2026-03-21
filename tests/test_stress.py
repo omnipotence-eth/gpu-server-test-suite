@@ -5,15 +5,13 @@ Tests patch the module-level torch reference to run without a real GPU.
 
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from src.diagnostics.compute_stress import _run_compute_stress, run_compute_stress
+from src.diagnostics.power_test import _run_power_stress, run_power_test
 from src.diagnostics.sm_stress import (
     _measure_fp16_throughput,
     _measure_sm_throughput,
     run_sm_stress,
 )
-from src.diagnostics.power_test import _run_power_stress, run_power_test
 from src.reporting.models import TestStatus
 from tests.conftest import MOCK_GPU_INFO
 
@@ -29,7 +27,10 @@ class TestComputeStress:
 
     def test_skip_no_cuda(self):
         with patch("src.diagnostics.compute_stress.torch", _mock_no_cuda()):
-            result = _run_compute_stress(MOCK_GPU_INFO, duration_seconds=5, min_utilization_pct=95, profile={})
+            result = _run_compute_stress(
+                MOCK_GPU_INFO, duration_seconds=5,
+                min_utilization_pct=95, profile={},
+            )
         assert result.status == TestStatus.SKIP
         assert result.test_name == "compute_stress.sustained"
 

@@ -2,8 +2,6 @@
 
 from unittest.mock import patch
 
-import pytest
-
 from src.diagnostics.pcie_validation import (
     _check_pcie_degradation_summary,
     _check_pcie_gen,
@@ -13,8 +11,6 @@ from src.diagnostics.pcie_validation import (
 )
 from src.inventory.pcie_topology import PCIeInfo
 from src.reporting.models import TestStatus
-from tests.conftest import MOCK_GPU_INFO, MOCK_GPU_INFO_DEGRADED
-
 
 # ─── Mock PCIe Data ────────────────────────────────────────────────────────
 

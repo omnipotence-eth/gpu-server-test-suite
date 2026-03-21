@@ -11,7 +11,6 @@ import pytest
 
 from src.inventory.gpu_inventory import GPUInfo
 
-
 # ─── Realistic Mock GPU Data ────────────────────────────────────────────────
 
 MOCK_GPU_INFO = GPUInfo(

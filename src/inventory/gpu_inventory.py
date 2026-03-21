@@ -8,7 +8,6 @@ This module wraps the same NVML C library that nvidia-smi and DCGM use.
 """
 
 from dataclasses import dataclass, field
-from typing import Optional
 
 import pynvml
 

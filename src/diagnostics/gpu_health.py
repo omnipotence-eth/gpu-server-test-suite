@@ -14,8 +14,6 @@ Checks performed:
 import time
 from typing import Any
 
-import pynvml
-
 from src.inventory.gpu_inventory import GPUInfo
 from src.reporting.models import TestResult, TestStatus
 
@@ -125,8 +123,6 @@ def _check_vram_available(gpu_infos: list[GPUInfo], profile: dict[str, Any]) -> 
     start = time.time()
     thresholds = profile.get("thresholds", {})
     alloc_pct = thresholds.get("vram_test_allocation_pct", 90)
-    vram_total = profile.get("vram_total_mib", 0)
-
     gpu_vram = []
     any_insufficient = False
 

@@ -5,8 +5,6 @@ Tests patch the module-level torch reference to run without a real GPU.
 
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from src.diagnostics.memory_test import (
     _check_vram_allocation,
     _check_vram_pattern_test,

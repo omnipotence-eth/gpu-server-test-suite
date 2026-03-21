@@ -78,7 +78,7 @@ def _run_compute_stress(
 
         while (time.perf_counter() - stress_start) < duration_seconds:
             try:
-                c = torch.mm(a, b)
+                _ = torch.mm(a, b)
                 torch.cuda.synchronize(device)
                 iteration_count += 1
 

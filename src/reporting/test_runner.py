@@ -36,15 +36,15 @@ class TestRunner:
 
     def _register_tests(self):
         """Register all available diagnostic test modules."""
+        from src.diagnostics.compute_stress import run_compute_stress
         from src.diagnostics.deployment import run_deployment_checks
         from src.diagnostics.gpu_health import run_gpu_health_checks
-        from src.diagnostics.pcie_validation import run_pcie_validation
+        from src.diagnostics.memory_bandwidth import run_memory_bandwidth
         from src.diagnostics.memory_test import run_memory_test
         from src.diagnostics.pcie_bandwidth import run_pcie_bandwidth
-        from src.diagnostics.memory_bandwidth import run_memory_bandwidth
-        from src.diagnostics.compute_stress import run_compute_stress
-        from src.diagnostics.sm_stress import run_sm_stress
+        from src.diagnostics.pcie_validation import run_pcie_validation
         from src.diagnostics.power_test import run_power_test
+        from src.diagnostics.sm_stress import run_sm_stress
 
         gpu = self.gpu_infos
         cfg = self.config
@@ -211,7 +211,10 @@ class TestRunner:
             hostname=socket.gethostname(),
             timestamp=datetime.now(timezone.utc),
             gpu_count=len(self.gpu_infos),
-            overall_status=TestStatus.FAIL if any_fail else (TestStatus.WARN if any_warn else TestStatus.PASS),
+            overall_status=(
+                TestStatus.FAIL if any_fail
+                else (TestStatus.WARN if any_warn else TestStatus.PASS)
+            ),
             duration_seconds=run_duration,
             results=all_results,
             system_info={},

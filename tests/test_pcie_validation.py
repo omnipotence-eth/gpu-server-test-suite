@@ -1,9 +1,7 @@
 """Tests for PCIe topology detection and degradation flagging."""
 
-import pytest
 
 from src.inventory.pcie_topology import PCIeInfo, get_pcie_topology
-from tests.conftest import MOCK_GPU_INFO, MOCK_GPU_INFO_DEGRADED
 
 
 class TestPCIeTopology:

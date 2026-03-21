@@ -6,8 +6,6 @@ pass/fail conditions using mocked GPU data — no real GPU required.
 
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from src.diagnostics.deployment import (
     _check_driver_loaded,
     _check_ecc_mode,
@@ -16,7 +14,6 @@ from src.diagnostics.deployment import (
     run_deployment_checks,
 )
 from src.reporting.models import TestStatus
-from tests.conftest import MOCK_GPU_INFO
 
 
 class TestDriverLoaded:

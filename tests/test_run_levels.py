@@ -4,10 +4,10 @@ Verifies that each diagnostic run level selects the correct set of
 tests, matching the DCGM run level architecture.
 """
 
-import yaml
 from pathlib import Path
 
 import pytest
+import yaml
 
 
 class TestRunLevelConfig:

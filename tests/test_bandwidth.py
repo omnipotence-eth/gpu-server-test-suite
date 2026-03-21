@@ -5,17 +5,15 @@ Tests patch the module-level torch reference to run without a real GPU.
 
 from unittest.mock import MagicMock, patch
 
-import pytest
-
-from src.diagnostics.pcie_bandwidth import (
-    _measure_d2h_bandwidth,
-    _measure_h2d_bandwidth,
-    run_pcie_bandwidth,
-)
 from src.diagnostics.memory_bandwidth import (
     _measure_memory_bandwidth,
     _measure_memory_bandwidth_triad,
     run_memory_bandwidth,
+)
+from src.diagnostics.pcie_bandwidth import (
+    _measure_d2h_bandwidth,
+    _measure_h2d_bandwidth,
+    run_pcie_bandwidth,
 )
 from src.reporting.models import TestStatus
 from tests.conftest import MOCK_GPU_INFO
