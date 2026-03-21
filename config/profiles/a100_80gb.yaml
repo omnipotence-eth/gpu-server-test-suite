@@ -1,0 +1,41 @@
+# NVIDIA A100 80GB PCIe Profile — Data Center GPU (production reference)
+# NOT runnable on our hardware. Documents A100-specific thresholds
+# for reference and demonstrates multi-profile config architecture.
+
+gpu_model: "NVIDIA A100 80GB PCIe"
+
+# Hardware specs
+vram_total_mib: 81920
+pcie_gen_expected: 4
+pcie_width_expected: 16
+ecc_supported: true
+ecc_expected: true
+nvlink_expected: false
+tdp_watts: 300
+
+# Test thresholds
+thresholds:
+  # Thermal limits (Celsius)
+  temp_warning_c: 75
+  temp_critical_c: 83
+  temp_shutdown_c: 90
+
+  # PCIe bandwidth (GiB/s) — theoretical max for Gen4 x16 is ~25 GiB/s
+  pcie_h2d_min_gibs: 23.0
+  pcie_d2h_min_gibs: 23.0
+  pcie_retransmit_max: 0
+
+  # Memory — HBM2e bandwidth is ~2 TB/s (A100)
+  vram_test_allocation_pct: 90
+  memory_bandwidth_min_gibs: 1500.0
+
+  # Compute stress
+  stress_duration_seconds: 120
+  stress_min_utilization_pct: 95
+  sm_target_gflops: 19500
+  sm_tolerance_pct: 10
+
+  # Power
+  power_target_pct: 90
+  power_duration_seconds: 60
+  power_tolerance_pct: 5

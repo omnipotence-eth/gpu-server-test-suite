@@ -1,0 +1,53 @@
+# GPU Server Diagnostic Test Suite — Master Configuration
+# Mirrors DCGM's configuration-driven test architecture.
+
+# GPU profile to use (references files in config/profiles/)
+gpu_profile: rtx_5070ti
+
+# System expectations
+expected:
+  gpu_count: 1
+
+# Run level definitions — which tests to include at each level
+# Mirrors DCGM's 4 diagnostic run levels (dcgmi diag -r 1/2/3/4)
+run_levels:
+  quick:
+    - deployment
+  medium:
+    - deployment
+    - pcie_validation
+    - memory_test
+  long:
+    - deployment
+    - pcie_validation
+    - memory_test
+    - pcie_bandwidth
+    - memory_bandwidth
+    - compute_stress
+    - sm_stress
+    - power_test
+  extended:
+    - deployment
+    - pcie_validation
+    - memory_test
+    - pcie_bandwidth
+    - memory_bandwidth
+    - compute_stress
+    - sm_stress
+    - power_test
+    - memtest
+
+# Database connection
+database:
+  host: localhost
+  port: 5432
+  name: gpu_tests
+  user: testeng
+  password: testeng
+
+# Monitoring daemon
+monitoring:
+  interval_seconds: 5
+  alert_temp_c: 80
+  alert_power_w: 280
+  log_to_db: true

@@ -1,0 +1,38 @@
+# RTX 5070 Ti GPU Profile — Consumer GPU (dev/test target)
+# This is the active profile for running diagnostics on this workstation.
+
+gpu_model: "NVIDIA GeForce RTX 5070 Ti"
+
+# Hardware specs
+vram_total_mib: 16384
+pcie_gen_expected: 4
+pcie_width_expected: 16
+ecc_supported: false
+tdp_watts: 300
+
+# Test thresholds
+thresholds:
+  # Thermal limits (Celsius)
+  temp_warning_c: 75
+  temp_critical_c: 83
+  temp_shutdown_c: 90
+
+  # PCIe bandwidth (GiB/s) — theoretical max for Gen4 x16 is ~25 GiB/s
+  pcie_h2d_min_gibs: 20.0
+  pcie_d2h_min_gibs: 20.0
+  pcie_retransmit_max: 0
+
+  # Memory
+  vram_test_allocation_pct: 90
+  memory_bandwidth_min_gibs: 400.0
+
+  # Compute stress
+  stress_duration_seconds: 60
+  stress_min_utilization_pct: 95
+  sm_target_gflops: 20000
+  sm_tolerance_pct: 10
+
+  # Power
+  power_target_pct: 90       # Target % of TDP to reach during power test
+  power_duration_seconds: 30
+  power_tolerance_pct: 5
