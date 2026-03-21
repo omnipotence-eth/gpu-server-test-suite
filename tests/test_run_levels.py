@@ -28,7 +28,10 @@ class TestRunLevelConfig:
         assert "deployment" in medium
         assert "pcie_validation" in medium
         assert "memory_test" in medium
-        assert len(medium) == 3
+        assert "xid_errors" in medium
+        assert "clock_throttle" in medium
+        assert "ecc_health" in medium
+        assert len(medium) == 7
 
     def test_long_level_includes_stress_tests(self, config):
         long_level = config["run_levels"]["long"]
@@ -66,9 +69,9 @@ class TestRunLevelSelection:
     def test_run_level_from_fixture(self, mock_config):
         """Verify mock_config fixture has consistent run levels."""
         assert len(mock_config["run_levels"]["quick"]) == 1
-        assert len(mock_config["run_levels"]["medium"]) == 3
-        assert len(mock_config["run_levels"]["long"]) == 8
-        assert len(mock_config["run_levels"]["extended"]) == 9
+        assert len(mock_config["run_levels"]["medium"]) == 7
+        assert len(mock_config["run_levels"]["long"]) == 14
+        assert len(mock_config["run_levels"]["extended"]) == 16
 
     def test_expected_gpu_count(self, mock_config):
         assert mock_config["expected"]["gpu_count"] == 1

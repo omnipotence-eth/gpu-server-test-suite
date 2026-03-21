@@ -15,27 +15,75 @@ run_levels:
     - deployment
   medium:
     - deployment
+    - gpu_health
     - pcie_validation
     - memory_test
+    - xid_errors
+    - clock_throttle
+    - ecc_health
   long:
     - deployment
+    - gpu_health
     - pcie_validation
     - memory_test
+    - xid_errors
+    - clock_throttle
+    - ecc_health
+    - topology_map
     - pcie_bandwidth
     - memory_bandwidth
     - compute_stress
     - sm_stress
     - power_test
+    - nvlink_p2p
   extended:
     - deployment
+    - gpu_health
     - pcie_validation
     - memory_test
+    - xid_errors
+    - clock_throttle
+    - ecc_health
+    - topology_map
     - pcie_bandwidth
     - memory_bandwidth
     - compute_stress
     - sm_stress
     - power_test
+    - nvlink_p2p
+    - nccl_validation
     - memtest
+
+# Execution modes
+modes:
+  preflight:
+    description: "Pre-job health check (60s)"
+    stress_duration_seconds: 30
+    tests:
+      - deployment
+      - gpu_health
+      - xid_errors
+      - clock_throttle
+      - ecc_health
+  burnin:
+    description: "New hardware burn-in (24h)"
+    stress_duration_seconds: 86400
+    tests:
+      - deployment
+      - gpu_health
+      - pcie_validation
+      - memory_test
+      - xid_errors
+      - clock_throttle
+      - ecc_health
+      - topology_map
+      - pcie_bandwidth
+      - memory_bandwidth
+      - compute_stress
+      - sm_stress
+      - power_test
+      - nvlink_p2p
+      - nccl_validation
 
 # Database connection
 database:
@@ -51,3 +99,8 @@ monitoring:
   alert_temp_c: 80
   alert_power_w: 280
   log_to_db: true
+
+# Prometheus metrics
+prometheus:
+  port: 9835
+  enabled: false

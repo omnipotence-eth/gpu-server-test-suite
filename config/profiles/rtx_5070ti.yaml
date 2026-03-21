@@ -8,6 +8,7 @@ vram_total_mib: 16384
 pcie_gen_expected: 4
 pcie_width_expected: 16
 ecc_supported: false
+nvlink_expected: false
 tdp_watts: 300
 
 # Test thresholds
@@ -36,3 +37,11 @@ thresholds:
   power_target_pct: 90       # Target % of TDP to reach during power test
   power_duration_seconds: 30
   power_tolerance_pct: 5
+
+  # ECC (N/A for consumer GPU, but set for interface compatibility)
+  ecc_sbe_warn_count: 10
+
+  # Interconnect (single GPU — minimums for PCIe P2P fallback)
+  nvlink_min_bw_gibs: 10.0
+  nccl_allreduce_min_gibs: 5.0
+  nccl_allgather_min_gibs: 4.0

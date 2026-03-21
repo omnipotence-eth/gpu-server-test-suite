@@ -39,3 +39,11 @@ thresholds:
   power_target_pct: 90
   power_duration_seconds: 60
   power_tolerance_pct: 5
+
+  # ECC — production thresholds for HBM2e
+  ecc_sbe_warn_count: 10
+
+  # Interconnect (PCIe only — no NVLink on A100 PCIe)
+  nvlink_min_bw_gibs: 10.0
+  nccl_allreduce_min_gibs: 10.0
+  nccl_allgather_min_gibs: 8.0

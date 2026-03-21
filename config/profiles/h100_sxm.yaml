@@ -40,3 +40,11 @@ thresholds:
   power_target_pct: 90
   power_duration_seconds: 60
   power_tolerance_pct: 5
+
+  # ECC — production thresholds for HBM3
+  ecc_sbe_warn_count: 5    # Lower threshold — HBM3 SBEs are more concerning
+
+  # NVLink / Interconnect — H100 NVLink 4.0 (900 GB/s total)
+  nvlink_min_bw_gibs: 100.0     # Per-link minimum
+  nccl_allreduce_min_gibs: 200.0
+  nccl_allgather_min_gibs: 150.0
