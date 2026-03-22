@@ -1,0 +1,88 @@
+# ─── GPU Diagnostic Stack ────────────────────────────────────────
+# Three-service stack: GPU diagnostics + Prometheus + Grafana
+#
+# Usage:
+#   docker compose up -d              # Start full stack
+#   docker compose up gpu-diag        # Run diagnostics only
+#   docker compose logs -f gpu-diag   # Watch diagnostic output
+#
+# Endpoints:
+#   http://localhost:9835/metrics      # Prometheus metrics (raw)
+#   http://localhost:9090              # Prometheus UI
+#   http://localhost:3000              # Grafana dashboard (admin/admin)
+# ─────────────────────────────────────────────────────────────────
+
+services:
+  # ── GPU Diagnostic Service ──────────────────────────────────
+  gpu-diag:
+    build: .
+    image: gpu-diag:latest
+    container_name: gpu-diag
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+    ports:
+      - "9835:9835"
+    volumes:
+      - ./reports:/app/reports
+      - ./config:/app/config:ro
+    networks:
+      - gpu-monitor
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  # ── Prometheus ──────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./config/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=30d"
+      - "--web.enable-lifecycle"
+    networks:
+      - gpu-monitor
+    restart: unless-stopped
+    depends_on:
+      - gpu-diag
+
+  # ── Grafana ─────────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:10.4.0
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH=/var/lib/grafana/dashboards/gpu-diagnostics.json
+    volumes:
+      - ./config/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./config/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    networks:
+      - gpu-monitor
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+
+networks:
+  gpu-monitor:
+    driver: bridge
+
+volumes:
+  prometheus-data:
+  grafana-data:

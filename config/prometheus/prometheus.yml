@@ -1,0 +1,16 @@
+# Prometheus configuration for GPU Diagnostic Test Suite
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - "alerts.yml"
+
+scrape_configs:
+  - job_name: "gpu-diagnostics"
+    static_configs:
+      - targets: ["gpu-diag:9835"]
+        labels:
+          instance: "gpu-server-01"
+    scrape_interval: 10s
+    metrics_path: /metrics

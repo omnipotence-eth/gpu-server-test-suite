@@ -1,0 +1,57 @@
+# GPU diagnostic alerting rules
+groups:
+  - name: gpu_health
+    rules:
+      - alert: GPUTemperatureCritical
+        expr: gpu_temperature_celsius > 85
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "GPU {{ $labels.gpu }} temperature critical"
+          description: "GPU {{ $labels.gpu }} at {{ $value }}C for >2 minutes."
+
+      - alert: GPUTemperatureWarning
+        expr: gpu_temperature_celsius > 75
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "GPU {{ $labels.gpu }} temperature elevated"
+          description: "GPU {{ $labels.gpu }} at {{ $value }}C for >5 minutes."
+
+      - alert: GPUDiagnosticFailed
+        expr: gpu_diagnostic_status == 0
+        for: 0m
+        labels:
+          severity: critical
+        annotations:
+          summary: "GPU diagnostic failed: {{ $labels.test }}"
+          description: "Test {{ $labels.test }} failed on GPU {{ $labels.gpu_uuid }}."
+
+      - alert: GPUPowerExcessive
+        expr: gpu_power_draw_watts > 290
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "GPU {{ $labels.gpu }} power draw high"
+          description: "GPU {{ $labels.gpu }} drawing {{ $value }}W for >2 minutes."
+
+      - alert: GPUECCDoublebitError
+        expr: gpu_ecc_dbe_total > 0
+        for: 0m
+        labels:
+          severity: critical
+        annotations:
+          summary: "GPU {{ $labels.gpu }} double-bit ECC error"
+          description: "Uncorrectable memory error detected. Node should be drained."
+
+      - alert: GPUECCSinglebitRising
+        expr: rate(gpu_ecc_sbe_total[1h]) > 0.1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "GPU {{ $labels.gpu }} rising SBE rate"
+          description: "Single-bit error rate increasing — potential memory degradation."
