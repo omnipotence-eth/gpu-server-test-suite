@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>GPU Server Diagnostic Dashboard</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0d1117; color: #e6edf3; font-family: -apple-system, 'Segoe UI', sans-serif; padding: 16px; }
+  h1 { font-size: 20px; color: #76B900; margin-bottom: 4px; }
+  .subtitle { color: #8b949e; font-size: 12px; margin-bottom: 16px; }
+  .grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin-bottom: 16px; }
+  .card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 12px; text-align: center; }
+  .card .label { font-size: 10px; color: #8b949e; text-transform: uppercase; letter-spacing: 1px; }
+  .card .value { font-size: 28px; font-weight: 700; margin: 6px 0; }
+  .card .unit { font-size: 11px; color: #8b949e; }
+  .pass { color: #3fb950; }
+  .fail { color: #f85149; }
+  .warn { color: #d29922; }
+  .skip { color: #8b949e; }
+  .section { font-size: 13px; color: #8b949e; margin: 12px 0 6px; border-bottom: 1px solid #21262d; padding-bottom: 4px; }
+  .tests { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 14px; }
+  .test { background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 8px 10px; font-size: 11px; display: flex; justify-content: space-between; align-items: center; }
+  .test .name { color: #c9d1d9; }
+  .test .badge { padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; }
+  .badge.pass { background: #0d2818; border: 1px solid #238636; }
+  .badge.fail { background: #2d0e0e; border: 1px solid #da3633; }
+  .badge.warn { background: #2e1c08; border: 1px solid #d29922; }
+  .badge.skip { background: #1c1c1c; border: 1px solid #484f58; }
+  .verdict { text-align: center; padding: 10px; border-radius: 8px; font-size: 18px; font-weight: 700; }
+  .verdict.pass { background: #0d2818; border: 2px solid #238636; color: #3fb950; }
+  .verdict.warn { background: #2e1c08; border: 2px solid #d29922; color: #d29922; }
+  .bars { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 14px; }
+  .bar-card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 12px; }
+  .bar-card .bar-label { font-size: 11px; color: #8b949e; margin-bottom: 6px; }
+  .bar-outer { background: #21262d; border-radius: 4px; height: 20px; overflow: hidden; position: relative; }
+  .bar-inner { height: 100%; border-radius: 4px; transition: width 1s ease; }
+  .bar-text { position: absolute; right: 8px; top: 2px; font-size: 11px; color: #e6edf3; font-weight: 600; }
+  .bar-green { background: linear-gradient(90deg, #238636, #3fb950); }
+  .bar-orange { background: linear-gradient(90deg, #9e6a03, #d29922); }
+  .bar-blue { background: linear-gradient(90deg, #1f6feb, #58a6ff); }
+  .footer { text-align: center; color: #484f58; font-size: 10px; margin-top: 10px; }
+  .metrics-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
+  .metric-card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 10px; }
+  .metric-card .mc-label { font-size: 10px; color: #8b949e; }
+  .metric-card .mc-val { font-size: 20px; font-weight: 700; color: #e6edf3; margin: 4px 0; }
+  .metric-card .mc-sub { font-size: 10px; color: #8b949e; }
+  .live-dot { display: inline-block; width: 8px; height: 8px; background: #3fb950; border-radius: 50%; margin-right: 6px; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+  #status { display: inline; }
+</style>
+</head>
+<body>
+<h1><span class="live-dot"></span>GPU Server Diagnostic Dashboard</h1>
+<div class="subtitle">NVIDIA GeForce RTX 5070 Ti &mdash; Prometheus Metrics &mdash; <span id="status">Loading...</span></div>
+
+<div class="grid">
+  <div class="card"><div class="label">Temperature</div><div class="value pass" id="temp">--</div><div class="unit">&deg;C</div></div>
+  <div class="card"><div class="label">Power Draw</div><div class="value" id="power" style="color:#58a6ff">--</div><div class="unit">Watts</div></div>
+  <div class="card"><div class="label">VRAM Used</div><div class="value" id="vram" style="color:#bc8cff">--</div><div class="unit">MiB</div></div>
+  <div class="card"><div class="label">GPU Clock</div><div class="value" id="clock" style="color:#79c0ff">--</div><div class="unit">MHz</div></div>
+  <div class="card"><div class="label">Diag Runs</div><div class="value" id="runs" style="color:#d2a8ff">--</div><div class="unit">total</div></div>
+  <div class="card"><div class="label">Overall</div><div class="value" id="overall">--</div><div class="unit" id="overall-label">verdict</div></div>
+</div>
+
+<div class="section">Diagnostic Test Results</div>
+<div class="tests" id="test-results"></div>
+
+<div class="section">Performance Metrics</div>
+<div class="bars">
+  <div class="bar-card">
+    <div class="bar-label">Temperature (max 90&deg;C)</div>
+    <div class="bar-outer"><div class="bar-inner bar-green" id="temp-bar" style="width:0%"></div><div class="bar-text" id="temp-bar-text">--</div></div>
+  </div>
+  <div class="bar-card">
+    <div class="bar-label">Power Draw (TDP 300W)</div>
+    <div class="bar-outer"><div class="bar-inner bar-orange" id="power-bar" style="width:0%"></div><div class="bar-text" id="power-bar-text">--</div></div>
+  </div>
+</div>
+
+<div class="section">Test Execution Timing</div>
+<div class="metrics-row" id="timing-cards"></div>
+
+<div class="footer">gpu-server-test-suite &mdash; Prometheus Exporter on :9835 &mdash; github.com/omnipotence-eth/gpu-server-test-suite</div>
+
+<script>
+async function fetchMetrics() {
+  try {
+    const res = await fetch('http://localhost:9835/metrics');
+    const text = await res.text();
+    const lines = text.split('\n');
+    const metrics = {};
+    for (const line of lines) {
+      if (line.startsWith('#') || !line.trim()) continue;
+      const match = line.match(/^(\S+?)(?:\{(.+?)\})?\s+(.+)$/);
+      if (match) {
+        const [, name, labels, value] = match;
+        if (!metrics[name]) metrics[name] = [];
+        const labelObj = {};
+        if (labels) {
+          for (const pair of labels.split(',')) {
+            const [k, v] = pair.split('=');
+            labelObj[k] = v.replace(/"/g, '');
+          }
+        }
+        metrics[name].push({ labels: labelObj, value: parseFloat(value) });
+      }
+    }
+    return metrics;
+  } catch { return null; }
+}
+
+function updateDashboard(m) {
+  if (!m) { document.getElementById('status').textContent = 'Disconnected'; return; }
+  document.getElementById('status').textContent = 'Live \u2014 ' + new Date().toLocaleTimeString();
+
+  const temp = m.gpu_temperature_celsius?.[0]?.value ?? '--';
+  const power = m.gpu_power_draw_watts?.[0]?.value ?? '--';
+  const vram = m.gpu_memory_used_mib?.[0]?.value ?? '--';
+  const clock = m.gpu_clock_graphics_mhz?.[0]?.value ?? '--';
+  const runs = m.gpu_diagnostic_run_total?.[0]?.value ?? '--';
+
+  document.getElementById('temp').textContent = temp;
+  document.getElementById('power').textContent = typeof power === 'number' ? power.toFixed(1) : power;
+  document.getElementById('vram').textContent = vram;
+  document.getElementById('clock').textContent = clock;
+  document.getElementById('runs').textContent = runs;
+
+  if (temp !== '--') {
+    const tempPct = Math.min((temp / 90) * 100, 100);
+    document.getElementById('temp-bar').style.width = tempPct + '%';
+    document.getElementById('temp-bar-text').textContent = temp + '\u00B0C';
+    document.getElementById('temp').className = 'value ' + (temp > 85 ? 'fail' : temp > 75 ? 'warn' : 'pass');
+  }
+  if (power !== '--') {
+    const pwrPct = Math.min((power / 300) * 100, 100);
+    document.getElementById('power-bar').style.width = pwrPct + '%';
+    document.getElementById('power-bar-text').textContent = power.toFixed(1) + 'W';
+  }
+
+  // Test results
+  const statusMetrics = m.gpu_diagnostic_status || [];
+  const durationMetrics = m.gpu_diagnostic_duration_seconds || [];
+  const testDiv = document.getElementById('test-results');
+  testDiv.innerHTML = '';
+  let allPass = true;
+  let anyWarn = false;
+
+  for (const s of statusMetrics) {
+    const name = s.labels.test || 'unknown';
+    const val = s.value;
+    let cls = val === 1 ? 'pass' : 'fail';
+    let label = val === 1 ? 'PASS' : 'FAIL';
+    // Check for skip/warn by name patterns
+    if (name.includes('ecc') && val === 0) { cls = 'skip'; label = 'SKIP'; }
+    if (name.includes('process') && val === 0) { cls = 'warn'; label = 'WARN'; anyWarn = true; }
+    if (val === 0 && cls === 'fail') allPass = false;
+
+    const el = document.createElement('div');
+    el.className = 'test';
+    el.innerHTML = '<span class="name">' + name.replace(/^(deployment|health|pcie_validation|memory_test|telemetry)\./, '') + '</span><span class="badge ' + cls + '">' + label + '</span>';
+    testDiv.appendChild(el);
+  }
+
+  const overallEl = document.getElementById('overall');
+  if (allPass && !anyWarn) { overallEl.textContent = 'PASS'; overallEl.className = 'value pass'; }
+  else if (allPass) { overallEl.textContent = 'WARN'; overallEl.className = 'value warn'; }
+  else { overallEl.textContent = 'FAIL'; overallEl.className = 'value fail'; }
+
+  // Timing cards
+  const timingDiv = document.getElementById('timing-cards');
+  timingDiv.innerHTML = '';
+  const topTests = durationMetrics.filter(d => d.value > 0.005).sort((a, b) => b.value - a.value).slice(0, 6);
+  for (const t of topTests) {
+    const el = document.createElement('div');
+    el.className = 'metric-card';
+    el.innerHTML = '<div class="mc-label">' + (t.labels.test || '') + '</div><div class="mc-val">' + (t.value * 1000).toFixed(0) + 'ms</div><div class="mc-sub">execution time</div>';
+    timingDiv.appendChild(el);
+  }
+}
+
+async function loop() {
+  const m = await fetchMetrics();
+  updateDashboard(m);
+}
+loop();
+setInterval(loop, 3000);
+</script>
+</body>
+</html>

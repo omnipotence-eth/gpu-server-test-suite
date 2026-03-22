@@ -201,6 +201,17 @@ def get_metrics_store() -> MetricsStore:
 class MetricsHandler(BaseHTTPRequestHandler):
     """HTTP handler for Prometheus /metrics endpoint."""
 
+    def _send_cors_headers(self):
+        """Add CORS headers for dashboard access."""
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET")
+
+    def do_OPTIONS(self):
+        """Handle CORS preflight requests."""
+        self.send_response(200)
+        self._send_cors_headers()
+        self.end_headers()
+
     def do_GET(self):
         if self.path == "/metrics":
             body = _metrics_store.format_prometheus()
@@ -209,11 +220,13 @@ class MetricsHandler(BaseHTTPRequestHandler):
                 "Content-Type",
                 "text/plain; version=0.0.4; charset=utf-8",
             )
+            self._send_cors_headers()
             self.end_headers()
             self.wfile.write(body.encode("utf-8"))
         elif self.path == "/health":
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
+            self._send_cors_headers()
             self.end_headers()
             self.wfile.write(
                 json.dumps({"status": "ok"}).encode("utf-8")
