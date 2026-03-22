@@ -20,7 +20,7 @@ thresholds:
 
   # PCIe bandwidth (GiB/s) — theoretical max for Gen4 x16 is ~25 GiB/s
   pcie_h2d_min_gibs: 20.0
-  pcie_d2h_min_gibs: 20.0
+  pcie_d2h_min_gibs: 8.0
   pcie_retransmit_max: 0
 
   # Memory

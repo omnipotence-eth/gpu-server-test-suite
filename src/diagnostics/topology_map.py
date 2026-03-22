@@ -128,7 +128,7 @@ def _query_numa_affinity() -> dict[int, int]:
                     with open(numa_path) as f:
                         numa_node = int(f.read().strip())
                     affinity[gpu_idx] = numa_node
-                except (FileNotFoundError, ValueError):
+                except (FileNotFoundError, ValueError, OSError):
                     affinity[gpu_idx] = -1
         return affinity
     except (subprocess.TimeoutExpired, FileNotFoundError):

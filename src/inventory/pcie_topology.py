@@ -118,12 +118,11 @@ def get_pcie_topology(gpu_infos: list) -> list[PCIeInfo]:
         replay = query_pcie_replay_counter(gpu.index)
 
         # Check for degradation
+        # NOTE: Link gen downshift at idle (e.g., Gen5 -> Gen2) is normal
+        # GPU power-saving behavior (ASPM). Only width degradation and
+        # replay counters indicate real hardware issues.
         is_degraded = False
         reasons = []
-
-        if gen_current < gen_max and gen_max > 0:
-            is_degraded = True
-            reasons.append(f"Link gen degraded: Gen{gen_current} (expected Gen{gen_max})")
 
         if width_current < width_max and width_max > 0:
             is_degraded = True

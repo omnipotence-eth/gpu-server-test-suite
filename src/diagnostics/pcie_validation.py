@@ -20,11 +20,17 @@ def _check_pcie_gen(
     pcie_infos: list[PCIeInfo],
     expected_gen: int,
 ) -> TestResult:
-    """Verify PCIe link generation matches expected value from profile."""
+    """Verify PCIe link generation capability matches expected value.
+
+    Validates against link_gen_max (hardware capability) rather than
+    link_gen_current, because GPUs dynamically downshift PCIe link
+    speed at idle for power saving (e.g., Gen5 -> Gen2). The max
+    capability reflects the actual hardware slot negotiation.
+    """
     start = time.time()
     mismatches = []
     for pcie in pcie_infos:
-        if pcie.link_gen_current < expected_gen:
+        if pcie.link_gen_max < expected_gen:
             mismatches.append({
                 "gpu_index": pcie.gpu_index,
                 "current_gen": pcie.link_gen_current,
@@ -49,8 +55,8 @@ def _check_pcie_gen(
             test_name="pcie_validation.link_gen",
             status=TestStatus.FAIL,
             duration_seconds=time.time() - start,
-            message=f"PCIe gen degraded on {len(mismatches)} GPU(s): "
-                    f"expected Gen{expected_gen}",
+            message=f"PCIe gen capability degraded on {len(mismatches)} "
+                    f"GPU(s): expected Gen{expected_gen}",
             failure_code="DIAG-200",
             details={**details, "mismatches": mismatches},
         )
@@ -58,7 +64,7 @@ def _check_pcie_gen(
         test_name="pcie_validation.link_gen",
         status=TestStatus.PASS,
         duration_seconds=time.time() - start,
-        message=f"PCIe link generation OK: Gen{expected_gen}",
+        message=f"PCIe link generation OK: Gen{expected_gen} capable",
         details=details,
     )
 

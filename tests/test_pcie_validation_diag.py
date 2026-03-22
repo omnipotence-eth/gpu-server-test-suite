@@ -44,10 +44,21 @@ class TestPCIeGenCheck:
         result = _check_pcie_gen([HEALTHY_PCIE], expected_gen=4)
         assert result.status == TestStatus.PASS
 
-    def test_gen3_below_gen4_fail(self):
-        result = _check_pcie_gen([DEGRADED_PCIE], expected_gen=4)
+    def test_gen3_max_below_gen4_fail(self):
+        """PCIe gen check validates link_gen_max, not current (idle downshift)."""
+        gen3_max = PCIeInfo(
+            gpu_index=0, link_gen_current=3, link_gen_max=3,
+            link_width_current=16, link_width_max=16,
+            replay_counter=0, is_degraded=False, degradation_reason="OK",
+        )
+        result = _check_pcie_gen([gen3_max], expected_gen=4)
         assert result.status == TestStatus.FAIL
         assert result.failure_code == "DIAG-200"
+
+    def test_idle_downshift_still_passes(self):
+        """GPU idling at Gen2 with Gen4 max capability should pass."""
+        result = _check_pcie_gen([DEGRADED_PCIE], expected_gen=4)
+        assert result.status == TestStatus.PASS
 
     def test_gen5_exceeds_gen4_pass(self):
         gen5 = PCIeInfo(

@@ -14,10 +14,12 @@ class TestPCIeTopology:
         assert pcie_infos[0].link_gen_current == 4
         assert pcie_infos[0].link_width_current == 16
 
-    def test_degraded_gen_detected(self, mock_gpu_info_degraded):
+    def test_idle_gen_downshift_not_flagged(self, mock_gpu_info_degraded):
+        """Gen downshift at idle is normal power-saving; not flagged as degraded."""
         pcie_infos = get_pcie_topology([mock_gpu_info_degraded])
-        assert pcie_infos[0].is_degraded is True
-        assert "gen degraded" in pcie_infos[0].degradation_reason.lower()
+        # is_degraded is True due to width, not gen
+        assert "width degraded" in pcie_infos[0].degradation_reason.lower()
+        assert "gen degraded" not in pcie_infos[0].degradation_reason.lower()
 
     def test_degraded_width_detected(self, mock_gpu_info_degraded):
         pcie_infos = get_pcie_topology([mock_gpu_info_degraded])
