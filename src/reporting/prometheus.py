@@ -130,13 +130,20 @@ class MetricsStore:
             # Diagnostic test results
             lines.append(
                 "# HELP gpu_diagnostic_status "
-                "Diagnostic test status (1=pass, 0=fail)"
+                "Diagnostic test status "
+                "(1=pass, 0=fail, 2=warn, 3=skip)"
             )
             lines.append(
                 "# TYPE gpu_diagnostic_status gauge"
             )
+            status_map = {
+                TestStatus.PASS: 1,
+                TestStatus.FAIL: 0,
+                TestStatus.WARN: 2,
+                TestStatus.SKIP: 3,
+            }
             for r in self._test_results:
-                val = 1 if r.status == TestStatus.PASS else 0
+                val = status_map.get(r.status, 0)
                 gpu_label = (
                     f',gpu_uuid="{r.gpu_uuid}"'
                     if r.gpu_uuid else ""

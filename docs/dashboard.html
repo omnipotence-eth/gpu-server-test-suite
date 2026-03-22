@@ -148,12 +148,11 @@ function updateDashboard(m) {
   for (const s of statusMetrics) {
     const name = s.labels.test || 'unknown';
     const val = s.value;
-    let cls = val === 1 ? 'pass' : 'fail';
-    let label = val === 1 ? 'PASS' : 'FAIL';
-    // Check for skip/warn by name patterns
-    if (name.includes('ecc') && val === 0) { cls = 'skip'; label = 'SKIP'; }
-    if (name.includes('process') && val === 0) { cls = 'warn'; label = 'WARN'; anyWarn = true; }
-    if (val === 0 && cls === 'fail') allPass = false;
+    let cls, label;
+    if (val === 1) { cls = 'pass'; label = 'PASS'; }
+    else if (val === 2) { cls = 'warn'; label = 'WARN'; anyWarn = true; }
+    else if (val === 3) { cls = 'skip'; label = 'SKIP'; }
+    else { cls = 'fail'; label = 'FAIL'; allPass = false; }
 
     const el = document.createElement('div');
     el.className = 'test';
