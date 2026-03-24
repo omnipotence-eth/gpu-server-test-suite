@@ -309,7 +309,7 @@ Included profiles: RTX 5070 Ti, A100 80GB SXM, H100 SXM.
 ## Testing
 
 ```bash
-pytest tests/                  # 157 tests, 0 warnings
+pytest tests/                  # 208 tests, 0 warnings
 ruff check src/ tests/         # Lint (all checks pass)
 ```
 

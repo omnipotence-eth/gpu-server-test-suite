@@ -10,7 +10,7 @@
 - [x] Hardware profiles for common GPUs (RTX 5070 Ti, A100 80GB, H100 SXM)
 - [x] JUnit XML output for CI/CD integration
 - [x] GitHub Actions CI pipeline
-- [x] 157 unit tests passing, ruff linting clean
+- [x] 208 unit tests passing, ruff linting clean
 - [x] `PytestCollectionWarning` suppression via `pyproject.toml`
 - [x] **Fault injection framework** — 5 synthetic fault types (`thermal`, `ecc`, `pcie`, `clock`, `memory`) via `--inject-fault`; failure codes use `DIAG-FI-*` prefix to distinguish from real faults in alert rules
 - [x] **Live GPU health monitor** — `monitor` command with Rich Live display; configurable poll interval; temperature colour-coded green/yellow/red at 75°C/85°C
