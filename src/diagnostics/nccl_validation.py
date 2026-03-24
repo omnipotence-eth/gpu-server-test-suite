@@ -1,16 +1,23 @@
 """NCCL collective operation validation — distributed training readiness.
 
-Validates GPU communication via NCCL (NVIDIA Collective Communications
-Library) collective operations:
-  - AllReduce: Sum tensors across all GPUs (the backbone of data-parallel training)
-  - AllGather: Gather tensors from all GPUs
-  - Broadcast: Send tensor from one GPU to all others
+Benchmarks AllReduce and AllGather throughput across multiple GPUs to
+validate multi-GPU communication for distributed training workloads.
 
-This is the "Gold Standard" for verifying a server is ready for
-distributed LLM training. Poor NCCL performance indicates topology
-misconfiguration, degraded NVLinks, or driver issues.
+NOTE — Simulated benchmark:
+    This module runs an in-process single-process simulation of collective
+    operations (reduce-to-GPU-0, broadcast back). It does NOT initialize
+    torch.distributed or invoke the NCCL library. As a result:
+      - It exercises PCIe P2P bandwidth between GPUs
+      - It does NOT validate NCCL library initialization, ring topology
+        routing, or NVLink collective throughput
+      - Bandwidth numbers reflect raw PCIe P2P, not true NCCL performance
 
-Requires: torch.distributed with NCCL backend.
+    Production NCCL validation requires multi-process execution via
+    torchrun/mpirun with torch.distributed initialized on the NCCL
+    backend — a multi-GPU node is required. This is tracked as a
+    Phase 2 enhancement in ROADMAP.md.
+
+Requires: 2+ CUDA-capable GPUs, PyTorch with CUDA support.
 """
 
 import time

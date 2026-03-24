@@ -84,7 +84,7 @@ src/
 │   ├── xid_errors.py        # XID event log analysis
 │   ├── clock_throttle.py    # Throttle reason detection
 │   ├── nvlink_p2p.py        # NVLink peer-to-peer validation
-│   ├── nccl_validation.py   # NCCL collective ops testing
+│   ├── nccl_validation.py   # NCCL collective ops testing (simulated, see Platform Notes)
 │   ├── topology_map.py      # PCIe/NVLink topology discovery
 │   └── gpu_cleanup.py       # Post-test GPU state reset
 ├── inventory/               # GPU discovery and system info
@@ -217,6 +217,8 @@ GitHub Actions runs on every push/PR to `master`:
 **ECC:** Consumer GPUs (GeForce series) do not support ECC. `deployment.ecc_mode` and `telemetry.ecc_health` report SKIP on these devices — this is expected behavior, not a fault.
 
 **Clock throttle:** App-clock-limiting (`clocks_event_reason_applications_clocks_setting`) on consumer GPUs reflects user-configured application clock caps, not a hardware fault. This state is classified as PASS.
+
+**NCCL validation (simulated):** `nccl_validation.py` runs an in-process simulation of AllReduce and AllGather — it measures PCIe P2P bandwidth between GPUs but does not initialize `torch.distributed` or invoke the NCCL library. True NCCL collective op benchmarking requires multi-process execution (`torchrun`/`mpirun`) with a multi-GPU node. This is a Phase 2 enhancement; the current test validates computation correctness and raw P2P throughput.
 
 ## License
 

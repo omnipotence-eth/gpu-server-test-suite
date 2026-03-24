@@ -70,10 +70,13 @@
 
 ### Phase 4: Advanced Features (Priority: Low)
 
-**NCCL Collective Operations Benchmark**
-- All-reduce, all-gather, broadcast latency measurement
-- Multi-GPU synchronization validation
-- Network throughput characterization
+**NCCL Collective Operations Benchmark** *(current impl is simulated)*
+- Current: in-process P2P simulation — measures PCIe bandwidth, does not
+  invoke the NCCL library or initialize torch.distributed
+- Phase 2: replace with multi-process torch.distributed (NCCL backend)
+  via torchrun, exercising real ring-allreduce over NVLink/PCIe
+- All-reduce, all-gather, broadcast latency and bus bandwidth measurement
+- Multi-GPU synchronization validation (requires 2+ GPU node)
 
 **NVLink Bandwidth Measurement**
 - P2P throughput profiling
