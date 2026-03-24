@@ -52,7 +52,6 @@ run_levels:
     - power_test
     - nvlink_p2p
     - nccl_validation
-    - memtest
 
 # Execution modes
 modes:

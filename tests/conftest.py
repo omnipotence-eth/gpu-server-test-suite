@@ -195,7 +195,6 @@ def mock_config():
                 "power_test",
                 "nvlink_p2p",
                 "nccl_validation",
-                "memtest",
             ],
         },
     }

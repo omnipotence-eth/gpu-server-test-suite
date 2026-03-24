@@ -249,18 +249,22 @@ class MetricsHandler(BaseHTTPRequestHandler):
 
 def start_metrics_server(
     port: int = 9835,
+    host: str = "127.0.0.1",
     daemon: bool = True,
 ) -> HTTPServer:
     """Start Prometheus metrics HTTP server.
 
     Args:
         port: HTTP port to listen on (default 9835).
+        host: Interface to bind (default 127.0.0.1). Pass "0.0.0.0"
+              only when running inside a container where external
+              Prometheus scraping is required.
         daemon: Run as daemon thread (exits with main process).
 
     Returns:
         HTTPServer instance.
     """
-    server = HTTPServer(("0.0.0.0", port), MetricsHandler)
+    server = HTTPServer((host, port), MetricsHandler)
     thread = threading.Thread(
         target=server.serve_forever,
         daemon=daemon,

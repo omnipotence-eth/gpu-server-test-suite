@@ -16,6 +16,7 @@ Critical XIDs indicate hardware failures that require node drain:
 Mirrors DCGM's XID event listener for production GPU cluster health.
 """
 
+import re
 import subprocess
 import time
 from typing import Any
@@ -46,11 +47,15 @@ XID_DESCRIPTIONS = {
     95: "Uncontained ECC error",
 }
 
+# Matches: "NVRM: Xid (PCI:0000:01:00): 31, ..."
+# Anchored after the closing paren to avoid matching PCI address bytes.
+_XID_RE = re.compile(r"Xid\s*\([^)]*\):\s*(\d+)")
+
 
 def _query_xid_from_dmesg() -> list[dict]:
     """Parse XID errors from system dmesg (Linux only).
 
-    Returns list of dicts: {"xid": int, "timestamp": str, "raw": str}
+    Returns list of dicts: {"xid": int, "raw": str}
     """
     try:
         result = subprocess.run(
@@ -65,21 +70,12 @@ def _query_xid_from_dmesg() -> list[dict]:
         xid_events = []
         for line in result.stdout.splitlines():
             if "NVRM: Xid" in line:
-                # Parse: "... NVRM: Xid (PCI:0000:01:00): 31, ..."
-                try:
-                    xid_part = line.split("Xid")[1]
-                    # Extract XID number
-                    parts = xid_part.split(":")
-                    for part in parts:
-                        part = part.strip().rstrip(",").strip()
-                        if part.isdigit():
-                            xid_events.append({
-                                "xid": int(part),
-                                "raw": line.strip(),
-                            })
-                            break
-                except (IndexError, ValueError):
-                    continue
+                match = _XID_RE.search(line)
+                if match:
+                    xid_events.append({
+                        "xid": int(match.group(1)),
+                        "raw": line.strip(),
+                    })
         return xid_events
     except (subprocess.TimeoutExpired, FileNotFoundError):
         return []

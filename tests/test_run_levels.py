@@ -43,10 +43,11 @@ class TestRunLevelConfig:
         assert "memory_bandwidth" in long_level
         assert "memtest" not in long_level  # memtest is Level 4 only
 
-    def test_extended_level_includes_memtest(self, config):
+    def test_extended_level_includes_nccl(self, config):
         extended = config["run_levels"]["extended"]
-        assert "memtest" in extended
-        # Extended should include everything from long plus memtest
+        assert "nccl_validation" in extended
+        assert "memtest" not in extended  # module not yet implemented
+        # Extended should include everything from long
         long_level = config["run_levels"]["long"]
         for test in long_level:
             assert test in extended
@@ -71,7 +72,7 @@ class TestRunLevelSelection:
         assert len(mock_config["run_levels"]["quick"]) == 1
         assert len(mock_config["run_levels"]["medium"]) == 7
         assert len(mock_config["run_levels"]["long"]) == 14
-        assert len(mock_config["run_levels"]["extended"]) == 16
+        assert len(mock_config["run_levels"]["extended"]) == 15
 
     def test_expected_gpu_count(self, mock_config):
         assert mock_config["expected"]["gpu_count"] == 1

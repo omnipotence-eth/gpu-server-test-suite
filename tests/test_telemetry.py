@@ -11,6 +11,7 @@ from src.diagnostics.ecc_health import (
     run_ecc_health_checks,
 )
 from src.diagnostics.xid_errors import (
+    _XID_RE,
     CRITICAL_XIDS,
     WARNING_XIDS,
     _check_xid_errors,
@@ -82,6 +83,31 @@ class TestXIDErrors:
         assert 79 in CRITICAL_XIDS  # GPU off bus
         assert 31 in CRITICAL_XIDS  # Memory page fault
         assert 92 in WARNING_XIDS   # SBE rate
+
+    def test_dmesg_regex_parses_xid_not_pci_address(self):
+        """Regex must extract the XID code, not PCI address bytes.
+
+        Line format: "NVRM: Xid (PCI:0000:01:00): 31, pid=..."
+        Old split-on-colon logic matched "0000" (PCI address) instead
+        of "31" (the actual XID). The regex anchors after the closing
+        paren to avoid this.
+        """
+        line = "2026-03-23T00:00:00 kernel: NVRM: Xid (PCI:0000:01:00): 31, pid=12345"
+        match = _XID_RE.search(line)
+        assert match is not None
+        assert int(match.group(1)) == 31
+
+    def test_dmesg_regex_parses_three_digit_xid(self):
+        """Regex handles three-digit XID codes correctly."""
+        line = "kernel: NVRM: Xid (PCI:0000:03:00): 119, pid=999"
+        match = _XID_RE.search(line)
+        assert match is not None
+        assert int(match.group(1)) == 119
+
+    def test_dmesg_regex_no_match_on_unrelated_line(self):
+        """Regex returns None for lines without an XID event."""
+        line = "kernel: NVRM: some other driver message: 00:01:00"
+        assert _XID_RE.search(line) is None
 
 
 class TestClockThrottle:
