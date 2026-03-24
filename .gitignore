@@ -34,3 +34,9 @@ desktop.ini
 # Coverage
 .coverage
 htmlcov/
+
+# Personal learning and interview prep (not shared)
+interview_notes/
+personal/
+*_personal_notes*
+study/

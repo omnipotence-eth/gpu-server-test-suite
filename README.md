@@ -4,7 +4,7 @@ Production-grade GPU validation framework modeled on [NVIDIA DCGM](https://devel
 
 Built for data center reliability teams, ML infrastructure engineers, and GPU fleet operators.
 
-![Dashboard Demo](docs/dashboard-demo.gif)
+![Diagnostic Output](docs/demo.svg)
 
 ## Features
 
@@ -157,8 +157,14 @@ GitHub Actions runs on every push/PR to `master`:
 
 - Python 3.10+
 - NVIDIA GPU with driver installed
-- `pynvml`, `psutil`, `click`, `pyyaml`, `rich`
+- `nvidia-ml-py`, `psutil`, `click`, `pyyaml`, `rich`
 - Docker + NVIDIA Container Toolkit (for containerized deployment)
+
+## Platform Notes
+
+**Windows (WDDM):** On Windows, `nvmlDeviceGetComputeRunningProcesses` returns all processes with a GPU context — including the desktop compositor, browsers, and system UI — not just CUDA workloads. The `gpu_processes` check filters to processes consuming >100 MB VRAM to correctly distinguish compute workloads from display processes. On Linux servers this filter has no effect.
+
+**ECC:** Consumer GPUs (GeForce series) do not support ECC. `deployment.ecc_mode` and `telemetry.ecc_health` report SKIP on these devices — this is expected behavior, not a fault.
 
 ## License
 

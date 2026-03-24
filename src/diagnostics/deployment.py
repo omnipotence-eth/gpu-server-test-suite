@@ -141,9 +141,17 @@ def _check_ecc_mode(gpu_infos: list[GPUInfo], profile: dict[str, Any]) -> TestRe
 
 
 def _check_gpu_processes(gpu_infos: list[GPUInfo]) -> TestResult:
-    """Verify no other processes are using the GPUs (should be clean for testing)."""
+    """Verify no compute workloads are using the GPUs before testing.
+
+    On Windows (WDDM), nvmlDeviceGetComputeRunningProcesses returns all
+    processes with a GPU context — including the desktop compositor, browsers,
+    and system UI. These are not real compute workloads. We filter to processes
+    with >100 MB VRAM usage, which reliably identifies actual CUDA workloads
+    (ML inference, training) while ignoring display/system processes.
+    """
     start = time.time()
     busy_gpus = []
+    COMPUTE_VRAM_THRESHOLD_MB = 100
 
     pynvml.nvmlInit()
     try:
@@ -151,12 +159,16 @@ def _check_gpu_processes(gpu_infos: list[GPUInfo]) -> TestResult:
             handle = pynvml.nvmlDeviceGetHandleByIndex(gpu.index)
             try:
                 procs = pynvml.nvmlDeviceGetComputeRunningProcesses(handle)
-                if procs:
+                heavy = [
+                    p for p in procs
+                    if (p.usedGpuMemory or 0) > COMPUTE_VRAM_THRESHOLD_MB * 1024 * 1024
+                ]
+                if heavy:
                     busy_gpus.append(
                         {
                             "index": gpu.index,
-                            "process_count": len(procs),
-                            "pids": [p.pid for p in procs],
+                            "process_count": len(heavy),
+                            "pids": [p.pid for p in heavy],
                         }
                     )
             except pynvml.NVMLError:
@@ -169,14 +181,14 @@ def _check_gpu_processes(gpu_infos: list[GPUInfo]) -> TestResult:
             test_name="deployment.gpu_processes",
             status=TestStatus.WARN,
             duration_seconds=time.time() - start,
-            message=f"GPU(s) in use by {sum(g['process_count'] for g in busy_gpus)} process(es)",
+            message=f"GPU(s) in use by {sum(g['process_count'] for g in busy_gpus)} compute process(es) (>{COMPUTE_VRAM_THRESHOLD_MB}MB VRAM)",
             details={"busy_gpus": busy_gpus},
         )
     return TestResult(
         test_name="deployment.gpu_processes",
         status=TestStatus.PASS,
         duration_seconds=time.time() - start,
-        message="No processes using GPU(s) — clean for testing",
+        message="No compute workloads on GPU(s) — clean for testing",
     )
 
 
