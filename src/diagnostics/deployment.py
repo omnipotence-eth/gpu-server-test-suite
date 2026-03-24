@@ -181,7 +181,11 @@ def _check_gpu_processes(gpu_infos: list[GPUInfo]) -> TestResult:
             test_name="deployment.gpu_processes",
             status=TestStatus.WARN,
             duration_seconds=time.time() - start,
-            message=f"GPU(s) in use by {sum(g['process_count'] for g in busy_gpus)} compute process(es) (>{COMPUTE_VRAM_THRESHOLD_MB}MB VRAM)",
+            message=(
+                f"GPU(s) in use by "
+                f"{sum(g['process_count'] for g in busy_gpus)} "
+                f"compute process(es) (>{COMPUTE_VRAM_THRESHOLD_MB}MB VRAM)"
+            ),
             details={"busy_gpus": busy_gpus},
         )
     return TestResult(
