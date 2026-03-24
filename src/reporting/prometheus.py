@@ -5,16 +5,16 @@ endpoint. Enables real-time monitoring dashboards and alerting
 through standard observability infrastructure.
 
 Metrics exposed:
-  - gpu_diagnostic_status (gauge): 1=pass, 0=fail per test
-  - gpu_diagnostic_duration_seconds (gauge): test execution time
   - gpu_temperature_celsius (gauge): current GPU temperature
   - gpu_power_draw_watts (gauge): current power consumption
   - gpu_memory_used_mib (gauge): VRAM usage
-  - gpu_ecc_sbe_total (counter): single-bit ECC errors
-  - gpu_ecc_dbe_total (counter): double-bit ECC errors
-  - gpu_pcie_bandwidth_gibs (gauge): measured PCIe bandwidth
-  - gpu_memory_bandwidth_gibs (gauge): measured memory bandwidth
+  - gpu_clock_graphics_mhz (gauge): graphics clock frequency
+  - gpu_ecc_sbe_total (gauge): volatile single-bit ECC errors
+  - gpu_ecc_dbe_total (gauge): volatile double-bit ECC errors
+  - gpu_diagnostic_status (gauge): 1=pass, 0=fail, 2=warn, 3=skip
+  - gpu_diagnostic_duration_seconds (gauge): test execution time
   - gpu_diagnostic_run_total (counter): total diagnostic runs
+  - gpu_diagnostic_last_run_timestamp (gauge): last run unix timestamp
 
 Uses Python's built-in http.server — no external deps required.
 For production, front with nginx or use the prometheus_client lib.
@@ -35,6 +35,7 @@ class MetricsStore:
     def __init__(self):
         self._lock = threading.Lock()
         self._gpu_metrics: dict[int, dict[str, float]] = {}
+        self._ecc_metrics: dict[str, dict[str, int]] = {}
         self._test_results: list[TestResult] = []
         self._run_count = 0
         self._last_run_timestamp = 0.0
@@ -59,11 +60,26 @@ class MetricsStore:
     def update_test_results(
         self, results: list[TestResult],
     ) -> None:
-        """Update with latest diagnostic test results."""
+        """Update with latest diagnostic test results.
+
+        Also extracts ECC volatile error counts from ecc_health results
+        so gpu_ecc_sbe_total and gpu_ecc_dbe_total are always current.
+        """
         with self._lock:
             self._test_results = list(results)
             self._run_count += 1
             self._last_run_timestamp = time.time()
+            for r in results:
+                if (
+                    "ecc_health" in r.test_name
+                    and r.gpu_uuid
+                    and r.details
+                ):
+                    volatile = r.details.get("volatile", {})
+                    self._ecc_metrics[r.gpu_uuid] = {
+                        "sbe": volatile.get("sbe", 0),
+                        "dbe": volatile.get("dbe", 0),
+                    }
 
     def format_prometheus(self) -> str:
         """Format all metrics in Prometheus exposition format."""
@@ -125,6 +141,35 @@ class MetricsStore:
                     f'gpu_clock_graphics_mhz'
                     f'{{gpu="{idx}"}} '
                     f'{m["clock_graphics_mhz"]}'
+                )
+
+            # ECC error counters (populated from ecc_health test results)
+            lines.append(
+                "# HELP gpu_ecc_sbe_total "
+                "Volatile single-bit ECC error count"
+            )
+            lines.append(
+                "# TYPE gpu_ecc_sbe_total gauge"
+            )
+            for uuid, ecc in self._ecc_metrics.items():
+                lines.append(
+                    f'gpu_ecc_sbe_total'
+                    f'{{gpu_uuid="{uuid}"}} '
+                    f'{ecc["sbe"]}'
+                )
+
+            lines.append(
+                "# HELP gpu_ecc_dbe_total "
+                "Volatile double-bit ECC error count"
+            )
+            lines.append(
+                "# TYPE gpu_ecc_dbe_total gauge"
+            )
+            for uuid, ecc in self._ecc_metrics.items():
+                lines.append(
+                    f'gpu_ecc_dbe_total'
+                    f'{{gpu_uuid="{uuid}"}} '
+                    f'{ecc["dbe"]}'
                 )
 
             # Diagnostic test results

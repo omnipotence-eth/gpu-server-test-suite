@@ -13,7 +13,6 @@ Built for data center reliability teams, ML infrastructure engineers, and GPU fl
 - **Prometheus metrics exporter** — Real-time GPU telemetry on `:9835/metrics` with CORS support
 - **Docker Compose stack** — One-command deployment with Prometheus + Grafana (auto-provisioned dashboards)
 - **Hardware profiles** — Per-GPU threshold configs (RTX 5070 Ti, A100 80GB, H100 SXM included)
-- **Fault injection** — Simulate thermal, power, ECC, clock, and memory faults for validation testing
 - **Burn-in mode** — Continuous stress testing with configurable duration (up to 24h)
 - **CI/CD integration** — JUnit XML output, GitHub Actions pipeline, ruff linting
 - **Rich CLI** — Colored terminal output with progress tables via Rich
@@ -45,9 +44,6 @@ python -m src.main diag --level long --output junit --junit-file results.xml
 
 # Burn-in mode (stress test for specified duration)
 python -m src.main diag --mode burnin --duration 3600
-
-# Fault injection testing
-python -m src.main diag --level long --inject-fault thermal
 
 # GPU cleanup (reset clocks, power, CUDA context)
 python -m src.main cleanup
@@ -94,7 +90,7 @@ src/
 ├── inventory/               # GPU discovery and system info
 ├── monitoring/              # Continuous health monitoring (Phase 3)
 ├── reporting/               # Prometheus, JUnit XML, test runner
-├── fault_injection/         # Controlled fault simulation
+├── fault_injection/         # Controlled fault simulation (Phase 2)
 └── database/                # Result persistence (SQLAlchemy, Phase 4)
 ```
 
@@ -105,7 +101,7 @@ src/
 | quick    | 1     | ~1s      | Smoke test after provisioning         |
 | medium   | 7     | ~5s      | Pre-job validation                    |
 | long     | 14    | ~30s     | Scheduled health checks               |
-| extended | 16    | ~60s     | Full qualification / burn-in          |
+| extended | 15    | ~60s     | Full qualification / burn-in          |
 
 **Level contents:**
 
@@ -126,7 +122,6 @@ src/
 | power_test        |       |        | ✓    | ✓        |
 | nvlink_p2p        |       |        | ✓    | ✓        |
 | nccl_validation   |       |        |      | ✓        |
-| memtest (burn-in) |       |        |      | ✓        |
 
 ## Execution Modes
 
@@ -153,6 +148,8 @@ gpu_temperature_celsius{gpu="0"} 47
 gpu_power_draw_watts{gpu="0"} 30.9
 gpu_memory_used_mib{gpu="0"} 2054
 gpu_clock_graphics_mhz{gpu="0"} 1057
+gpu_ecc_sbe_total{gpu_uuid="GPU-abc123"} 0
+gpu_ecc_dbe_total{gpu_uuid="GPU-abc123"} 0
 gpu_diagnostic_status{test="deployment.driver_loaded"} 1
 gpu_diagnostic_duration_seconds{test="memory_test.vram_alloc"} 0.390
 gpu_diagnostic_run_total 3
@@ -193,7 +190,7 @@ Included profiles: RTX 5070 Ti, A100 80GB SXM, H100 SXM.
 ## Testing
 
 ```bash
-pytest tests/                  # 154 tests, 0 warnings
+pytest tests/                  # 157 tests, 0 warnings
 ruff check src/ tests/         # Lint (all checks pass)
 ```
 
