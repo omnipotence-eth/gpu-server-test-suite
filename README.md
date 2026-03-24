@@ -313,7 +313,26 @@ pytest tests/                  # 208 tests, 0 warnings
 ruff check src/ tests/         # Lint (all checks pass)
 ```
 
-The test suite covers all diagnostic modules, the test runner, JUnit/Prometheus output, run level configuration, and telemetry checks. `PytestCollectionWarning` suppression is configured in `pyproject.toml`.
+| Test File | Items | Coverage |
+|-----------|------:|---------|
+| `test_production.py` | 23 | Prometheus metrics exposition format, `/metrics` and `/health` HTTP endpoints |
+| `test_telemetry.py` | 22 | XID error detection, clock throttle reason classification, ECC error counters |
+| `test_pcie_validation_diag.py` | 14 | PCIe gen/width/replay detection, degradation summary |
+| `test_history.py` | 14 | JSONL run persistence, newest-first ordering, `--failures` filter, malformed line handling |
+| `test_fault_injection.py` | 30 | 5 fault types × parametrize — FAIL status, `DIAG-FI-*` prefix, injected flag, no collision with real codes |
+| `test_stress.py` | 12 | Compute stress, SM saturation |
+| `test_runner.py` | 12 | Test orchestration, result aggregation |
+| `test_run_levels.py` | 12 | quick / medium / long / extended level configuration |
+| `test_interconnect.py` | 12 | NVLink P2P, topology mapping |
+| `test_gpu_health.py` | 12 | Temperature, power, VRAM availability, clock responsiveness |
+| `test_deployment.py` | 12 | Driver load, GPU count/model/ECC, unique DIAG-001–004 codes, nvml session lifecycle |
+| `test_bandwidth.py` | 12 | Host-to-device, device-to-host, and memory triad bandwidth |
+| `test_memory_test.py` | 10 | VRAM allocation, pattern verification |
+| `test_cli.py` | 7 | `monitor` KeyboardInterrupt handling, `history` rendering and flag filters |
+| `test_pcie_validation.py` | 4 | PCIe link speed/width pass/fail cases |
+| **Total** | **208** | |
+
+`PytestCollectionWarning` suppression is configured in `pyproject.toml`.
 
 ---
 
