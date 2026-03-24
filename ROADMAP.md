@@ -106,8 +106,8 @@
 | Goal                   | Current            | Target            |
 |------------------------|--------------------|-------------------|
 | Diagnostic modules     | 16                 | 18–20             |
-| Unit test coverage     | 157 tests          | 175+ tests        |
-| Test runtime (medium)  | ~5s                | <3s               |
+| Unit test coverage     | 208 tests          | 225+ tests        |
+| Test runtime (medium)  | ~0.6s              | <0.3s             |
 | Documentation          | README + roadmap   | + architecture doc |
 | Production deployments | Example config     | Multiple documented|
 
