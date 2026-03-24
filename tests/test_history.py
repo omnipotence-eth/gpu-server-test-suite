@@ -45,7 +45,7 @@ class TestSaveRun:
         with patch("src.reporting.history._HISTORY_FILE", hf):
             save_run("r1", "quick", _results(), 1.0)
             save_run("r2", "medium", _results(), 2.0)
-        lines = [l for l in hf.read_text().splitlines() if l.strip()]
+        lines = [ln for ln in hf.read_text().splitlines() if ln.strip()]
         assert len(lines) == 2
 
     def test_entry_contains_expected_fields(self, tmp_path):
