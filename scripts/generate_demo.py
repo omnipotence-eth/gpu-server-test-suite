@@ -44,4 +44,15 @@ if __name__ == "__main__":
 
     os.makedirs(os.path.dirname(OUTPUT_PATH), exist_ok=True)
     recording.save_svg(OUTPUT_PATH, title="GPU Server Diagnostic Suite — RTX 5070 Ti")
+
+    # Rich's SVG export hardcodes macOS-style traffic light buttons regardless
+    # of platform. Strip them — this tool runs on Linux/Windows servers.
+    with open(OUTPUT_PATH, "r", encoding="utf-8") as f:
+        svg = f.read()
+    svg = svg.replace('<circle cx="0" cy="0" r="7" fill="#ff5f57"/>', "")
+    svg = svg.replace('<circle cx="22" cy="0" r="7" fill="#febc2e"/>', "")
+    svg = svg.replace('<circle cx="44" cy="0" r="7" fill="#28c840"/>', "")
+    with open(OUTPUT_PATH, "w", encoding="utf-8") as f:
+        f.write(svg)
+
     print(f"Saved: {OUTPUT_PATH}")
