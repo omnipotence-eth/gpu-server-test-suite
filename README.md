@@ -8,13 +8,13 @@ Built for data center reliability teams, ML infrastructure engineers, and GPU fl
 
 ## Features
 
-- **Multi-level diagnostics** — Quick (deployment checks), Medium (+ PCIe, memory, telemetry), Long (+ bandwidth, stress), Extended (+ burn-in)
-- **17 diagnostic tests** — Driver validation, GPU enumeration, PCIe gen/width/replay, VRAM allocation, pattern verification, XID errors, ECC health, clock throttling, compute stress, memory bandwidth, NVLink P2P
+- **Multi-level diagnostics** — Quick (deployment checks), Medium (+ PCIe, memory, telemetry), Long (+ bandwidth, stress, topology), Extended (+ NCCL, burn-in)
+- **16 diagnostic modules** — Driver validation, GPU enumeration, PCIe gen/width/replay, VRAM allocation, pattern verification, XID errors, ECC health, clock throttling, compute stress, memory bandwidth, NVLink P2P, topology mapping, and more
 - **Prometheus metrics exporter** — Real-time GPU telemetry on `:9835/metrics` with CORS support
 - **Docker Compose stack** — One-command deployment with Prometheus + Grafana (auto-provisioned dashboards)
 - **Hardware profiles** — Per-GPU threshold configs (RTX 5070 Ti, A100 80GB, H100 SXM included)
-- **Fault injection** — Simulate thermal, power, and memory faults for validation testing
-- **Burn-in mode** — Continuous stress testing with configurable duration
+- **Fault injection** — Simulate thermal, power, ECC, clock, and memory faults for validation testing
+- **Burn-in mode** — Continuous stress testing with configurable duration (up to 24h)
 - **CI/CD integration** — JUnit XML output, GitHub Actions pipeline, ruff linting
 - **Rich CLI** — Colored terminal output with progress tables via Rich
 
@@ -27,7 +27,11 @@ pip install -e ".[dev]"
 # Run diagnostics
 python -m src.main diag --level quick        # Deployment checks only (~1s)
 python -m src.main diag --level medium       # + PCIe, memory, telemetry (~5s)
-python -m src.main diag --level long         # + bandwidth, stress tests (~30s)
+python -m src.main diag --level long         # + bandwidth, stress, topology (~30s)
+python -m src.main diag --level extended     # + NCCL, burn-in (~60s)
+
+# Run a single named test
+python -m src.main diag --test xid_errors
 
 # GPU inventory
 python -m src.main inventory
@@ -38,6 +42,15 @@ python -m src.main metrics --port 9835
 # Export results
 python -m src.main diag --level long --output json
 python -m src.main diag --level long --output junit --junit-file results.xml
+
+# Burn-in mode (stress test for specified duration)
+python -m src.main diag --mode burnin --duration 3600
+
+# Fault injection testing
+python -m src.main diag --level long --inject-fault thermal
+
+# GPU cleanup (reset clocks, power, CUDA context)
+python -m src.main cleanup
 ```
 
 ## Docker Compose
@@ -48,11 +61,11 @@ Full observability stack with one command:
 docker compose up -d
 ```
 
-| Service  | Port  | Description                          |
-|----------|-------|--------------------------------------|
-| gpu-diag | 9835  | Prometheus metrics exporter          |
-| Prometheus | 9090 | Metrics storage and alerting        |
-| Grafana  | 3000  | Dashboard visualization (admin/admin)|
+| Service    | Port | Description                           |
+|------------|------|---------------------------------------|
+| gpu-diag   | 9835 | Prometheus metrics exporter           |
+| Prometheus | 9090 | Metrics storage and alerting          |
+| Grafana    | 3000 | Dashboard visualization (admin/admin) |
 
 Requires [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html).
 
@@ -61,37 +74,75 @@ Requires [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-nat
 ```
 src/
 ├── main.py                  # CLI entry point (click-based)
-├── diagnostics/             # 17 test modules
+├── diagnostics/             # 16 diagnostic modules
 │   ├── deployment.py        # Driver, GPU count, model, ECC, persistence
+│   ├── gpu_health.py        # Temperature, power, VRAM, clock responsiveness
 │   ├── pcie_validation.py   # Gen, width, replay counters, degradation
 │   ├── pcie_bandwidth.py    # Host-to-device / device-to-host throughput
 │   ├── memory_test.py       # VRAM allocation + pattern verification
 │   ├── memory_bandwidth.py  # HBM bandwidth measurement
-│   ├── gpu_health.py        # Temperature, power, utilization
 │   ├── compute_stress.py    # SM occupancy stress test
 │   ├── sm_stress.py         # Streaming multiprocessor saturation
 │   ├── power_test.py        # Power draw under load
-│   ├── ecc_health.py        # SBE/DBE error counters
+│   ├── ecc_health.py        # SBE/DBE error counters, row remapping
 │   ├── xid_errors.py        # XID event log analysis
 │   ├── clock_throttle.py    # Throttle reason detection
 │   ├── nvlink_p2p.py        # NVLink peer-to-peer validation
 │   ├── nccl_validation.py   # NCCL collective ops testing
-│   └── topology_map.py      # PCIe/NVLink topology discovery
+│   ├── topology_map.py      # PCIe/NVLink topology discovery
+│   └── gpu_cleanup.py       # Post-test GPU state reset
 ├── inventory/               # GPU discovery and system info
-├── monitoring/              # Continuous health monitoring
+├── monitoring/              # Continuous health monitoring (Phase 3)
 ├── reporting/               # Prometheus, JUnit XML, test runner
 ├── fault_injection/         # Controlled fault simulation
-└── database/                # Result persistence (SQLAlchemy)
+└── database/                # Result persistence (SQLAlchemy, Phase 4)
 ```
 
 ## Diagnostic Levels
 
-| Level    | Tests | Duration | Use Case                        |
-|----------|-------|----------|---------------------------------|
-| quick    | 1     | ~1s      | Smoke test after provisioning   |
-| medium   | 4     | ~5s      | Pre-job validation              |
-| long     | 7     | ~30s     | Scheduled health checks         |
-| extended | 8     | ~60s     | Full qualification              |
+| Level    | Tests | Duration | Use Case                              |
+|----------|-------|----------|---------------------------------------|
+| quick    | 1     | ~1s      | Smoke test after provisioning         |
+| medium   | 7     | ~5s      | Pre-job validation                    |
+| long     | 14    | ~30s     | Scheduled health checks               |
+| extended | 16    | ~60s     | Full qualification / burn-in          |
+
+**Level contents:**
+
+| Test Module       | quick | medium | long | extended |
+|-------------------|:-----:|:------:|:----:|:--------:|
+| deployment        | ✓     | ✓      | ✓    | ✓        |
+| gpu_health        |       | ✓      | ✓    | ✓        |
+| pcie_validation   |       | ✓      | ✓    | ✓        |
+| memory_test       |       | ✓      | ✓    | ✓        |
+| xid_errors        |       | ✓      | ✓    | ✓        |
+| clock_throttle    |       | ✓      | ✓    | ✓        |
+| ecc_health        |       | ✓      | ✓    | ✓        |
+| topology_map      |       |        | ✓    | ✓        |
+| pcie_bandwidth    |       |        | ✓    | ✓        |
+| memory_bandwidth  |       |        | ✓    | ✓        |
+| compute_stress    |       |        | ✓    | ✓        |
+| sm_stress         |       |        | ✓    | ✓        |
+| power_test        |       |        | ✓    | ✓        |
+| nvlink_p2p        |       |        | ✓    | ✓        |
+| nccl_validation   |       |        |      | ✓        |
+| memtest (burn-in) |       |        |      | ✓        |
+
+## Execution Modes
+
+| Mode      | Description                            | Stress Duration |
+|-----------|----------------------------------------|-----------------|
+| standard  | Normal test execution (default)        | Profile default |
+| preflight | Pre-job health check, shorter stress   | 30s             |
+| burnin    | New hardware qualification             | Configurable    |
+
+```bash
+# Pre-flight check before a training job
+python -m src.main diag --level medium --mode preflight
+
+# 8-hour burn-in for new hardware
+python -m src.main diag --level extended --mode burnin --duration 28800
+```
 
 ## Prometheus Metrics
 
@@ -113,14 +164,14 @@ Status codes: `1` = PASS, `0` = FAIL, `2` = WARN, `3` = SKIP
 
 Pre-configured Prometheus alerts in `config/prometheus/alerts.yml`:
 
-| Alert                   | Condition          | Severity |
-|-------------------------|--------------------|----------|
-| GPUTemperatureCritical  | > 85°C for 2m      | critical |
-| GPUTemperatureWarning   | > 75°C for 5m      | warning  |
-| GPUDiagnosticFailed     | Any test fails      | critical |
-| GPUPowerExcessive       | > 290W for 2m       | warning  |
-| GPUECCDoublebitError    | DBE count > 0       | critical |
-| GPUECCSinglebitRising   | SBE rate > 0.1/hr   | warning  |
+| Alert                  | Condition           | Severity |
+|------------------------|---------------------|----------|
+| GPUTemperatureCritical | > 85°C for 2m       | critical |
+| GPUTemperatureWarning  | > 75°C for 5m       | warning  |
+| GPUDiagnosticFailed    | Any test fails      | critical |
+| GPUPowerExcessive      | > 290W for 2m       | warning  |
+| GPUECCDoublebitError   | DBE count > 0       | critical |
+| GPUECCSinglebitRising  | SBE rate > 0.1/hr   | warning  |
 
 ## Hardware Profiles
 
@@ -142,9 +193,11 @@ Included profiles: RTX 5070 Ti, A100 80GB SXM, H100 SXM.
 ## Testing
 
 ```bash
-pytest tests/ -v               # 154 tests
-ruff check src/ tests/         # Lint
+pytest tests/                  # 154 tests, 0 warnings
+ruff check src/ tests/         # Lint (all checks pass)
 ```
+
+The test suite covers all diagnostic modules, the test runner, JUnit/Prometheus output, run level configuration, and telemetry checks. `PytestCollectionWarning` suppression is configured in `pyproject.toml` to keep output clean.
 
 ## CI/CD
 
@@ -165,6 +218,8 @@ GitHub Actions runs on every push/PR to `master`:
 **Windows (WDDM):** On Windows, `nvmlDeviceGetComputeRunningProcesses` returns all processes with a GPU context — including the desktop compositor, browsers, and system UI — not just CUDA workloads. The `gpu_processes` check filters to processes consuming >100 MB VRAM to correctly distinguish compute workloads from display processes. On Linux servers this filter has no effect.
 
 **ECC:** Consumer GPUs (GeForce series) do not support ECC. `deployment.ecc_mode` and `telemetry.ecc_health` report SKIP on these devices — this is expected behavior, not a fault.
+
+**Clock throttle:** App-clock-limiting (`clocks_event_reason_applications_clocks_setting`) on consumer GPUs reflects user-configured application clock caps, not a hardware fault. This state is classified as PASS.
 
 ## License
 

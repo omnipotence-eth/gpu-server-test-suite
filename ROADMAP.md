@@ -14,6 +14,7 @@
 - [x] GitHub Actions CI pipeline
 - [x] Professional documentation (README, technical paper, GIF demo)
 - [x] All 154 unit tests passing with ruff linting clean
+- [x] Suppressed `PytestCollectionWarning` for `TestStatus`/`TestResult` production classes via `pyproject.toml` `filterwarnings`
 
 ## Planned Enhancements
 
@@ -102,9 +103,9 @@
 
 | Goal | Current | Target |
 |------|---------|--------|
-| Diagnostic tests | 17 | 19-20 |
+| Diagnostic modules | 16 | 18-20 |
 | Unit test coverage | 154 tests | 170+ tests |
-| Test runtime (medium) | 0.62s | <0.3s |
+| Test runtime (medium) | ~5s | <3s |
 | Documentation | README + paper | + case study |
 | Production deployments | Example | Multiple documented |
 
