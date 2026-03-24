@@ -99,7 +99,7 @@ src/
 | Level    | Tests | Duration | Use Case                              |
 |----------|-------|----------|---------------------------------------|
 | quick    | 1     | ~1s      | Smoke test after provisioning         |
-| medium   | 7     | ~5s      | Pre-job validation                    |
+| medium   | 7     | ~1s      | Pre-job validation                    |
 | long     | 14    | ~30s     | Scheduled health checks               |
 | extended | 15    | ~60s     | Full qualification / burn-in          |
 
