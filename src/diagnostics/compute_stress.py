@@ -12,6 +12,11 @@ import time
 from typing import Any
 
 try:
+    import pynvml as _pynvml
+except ImportError:
+    _pynvml = None  # type: ignore[assignment]
+
+try:
     import torch
 except ImportError:
     torch = None  # type: ignore[assignment]
@@ -84,21 +89,20 @@ def _run_compute_stress(
 
                 now = time.perf_counter()
                 if now - last_check > 5.0:
-                    try:
-                        import pynvml
-
-                        pynvml.nvmlInit()
-                        handle = pynvml.nvmlDeviceGetHandleByIndex(gpu.index)
-                        temp = pynvml.nvmlDeviceGetTemperature(
-                            handle, pynvml.NVML_TEMPERATURE_GPU
-                        )
-                        temp_samples.append({
-                            "time_s": round(now - stress_start, 1),
-                            "temp_c": temp,
-                        })
-                        pynvml.nvmlShutdown()
-                    except Exception:
-                        pass
+                    if _pynvml is not None:
+                        try:
+                            _pynvml.nvmlInit()
+                            handle = _pynvml.nvmlDeviceGetHandleByIndex(gpu.index)
+                            temp = _pynvml.nvmlDeviceGetTemperature(
+                                handle, _pynvml.NVML_TEMPERATURE_GPU
+                            )
+                            temp_samples.append({
+                                "time_s": round(now - stress_start, 1),
+                                "temp_c": temp,
+                            })
+                            _pynvml.nvmlShutdown()
+                        except Exception:
+                            pass
                     last_check = now
 
             except RuntimeError as e:

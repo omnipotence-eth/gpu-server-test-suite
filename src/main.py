@@ -487,8 +487,7 @@ def diag(
 
     if inject_fault:
         console.print(
-            f"[yellow]Fault injection active: "
-            f"{inject_fault}[/yellow]"
+            f"[yellow]Fault injection active: {inject_fault}[/yellow]"
         )
 
     mode_label = ""
@@ -558,7 +557,24 @@ def diag(
                 f"[yellow]Cleanup warning: {e}[/yellow]"
             )
 
+    # Append injected fault result after real tests
+    if inject_fault:
+        from src.fault_injection import inject_fault as _inject_fault
+
+        fault_result = _inject_fault(inject_fault)
+        all_results.append(fault_result)
+        console.print(
+            f"[yellow]Injected fault result: "
+            f"{fault_result.test_name} → {fault_result.failure_code}[/yellow]"
+        )
+
     run_duration = time.time() - run_start
+    run_id = str(uuid.uuid4())
+
+    # Save run to history
+    from src.reporting.history import save_run
+
+    save_run(run_id, run_level, all_results, run_duration)
 
     # Update Prometheus metrics if server is running
     if metrics_port:
@@ -646,18 +662,56 @@ def metrics(port):
     help="Polling interval in seconds.",
 )
 def monitor(interval):
-    """Start background GPU health monitoring."""
+    """Display live GPU health metrics, refreshed on an interval."""
+    from rich.live import Live
+
+    def _make_gpu_table(gpu_infos):
+        table = Table(title="GPU Health Monitor", show_lines=True)
+        table.add_column("GPU", justify="right", style="bold")
+        table.add_column("Name")
+        table.add_column("Temp (°C)", justify="right")
+        table.add_column("Power (W)", justify="right")
+        table.add_column("VRAM Used", justify="right")
+        table.add_column("Clocks G/M (MHz)", justify="right")
+        table.add_column("P-State", justify="center")
+
+        for gpu in gpu_infos:
+            vram_str = f"{gpu.vram_used_mib}/{gpu.vram_total_mib} MiB"
+            clocks_str = f"{gpu.clock_graphics_mhz}/{gpu.clock_memory_mhz}"
+            if gpu.temperature_c >= 85:
+                temp_color = "red"
+            elif gpu.temperature_c >= 75:
+                temp_color = "yellow"
+            else:
+                temp_color = "green"
+            table.add_row(
+                str(gpu.index),
+                gpu.name,
+                f"[{temp_color}]{gpu.temperature_c}[/{temp_color}]",
+                f"{gpu.power_draw_w:.0f} / {gpu.power_limit_w:.0f}",
+                vram_str,
+                clocks_str,
+                gpu.pstate,
+            )
+        return table
+
     console.print(
-        f"[bold blue]Health monitoring — interval: "
-        f"{interval}s (Ctrl+C to stop)[/bold blue]"
+        f"[bold blue]GPU Health Monitor — "
+        f"refresh every {interval}s (Ctrl+C to stop)[/bold blue]"
     )
-    console.print(
-        "[dim]Phase 3 implementation — health_daemon.py[/dim]"
-    )
-    console.print(
-        "[yellow]Monitor not yet implemented. "
-        "Coming in Phase 3.[/yellow]"
-    )
+    try:
+        with Live(refresh_per_second=1, screen=False) as live:
+            while True:
+                try:
+                    gpu_infos = get_all_gpus()
+                    live.update(_make_gpu_table(gpu_infos))
+                except Exception as e:
+                    live.update(
+                        Panel(f"[red]GPU poll error: {e}[/red]", border_style="red")
+                    )
+                time.sleep(interval)
+    except KeyboardInterrupt:
+        console.print("\n[dim]Monitor stopped.[/dim]")
 
 
 @cli.command()
@@ -665,15 +719,53 @@ def monitor(interval):
     "--failures", is_flag=True,
     help="Show only failed runs.",
 )
-def history(failures):
-    """Show recent diagnostic run history from database."""
-    console.print(
-        "[dim]Phase 4 implementation — database queries[/dim]"
-    )
-    console.print(
-        "[yellow]History not yet implemented. "
-        "Coming in Phase 4.[/yellow]"
-    )
+@click.option(
+    "--limit", default=20,
+    help="Maximum number of recent runs to display.",
+)
+def history(failures, limit):
+    """Show recent diagnostic run history (stored in reports/.run_history.jsonl)."""
+    from src.reporting.history import load_runs
+
+    runs = load_runs(failures_only=failures, limit=limit)
+
+    if not runs:
+        if failures:
+            console.print("[dim]No failed runs in history.[/dim]")
+        else:
+            console.print(
+                "[dim]No run history found. "
+                "Run 'diag' to generate entries.[/dim]"
+            )
+        return
+
+    table = Table(title="Diagnostic Run History", show_lines=True)
+    table.add_column("Timestamp")
+    table.add_column("Run ID", style="dim")
+    table.add_column("Level")
+    table.add_column("Status", justify="center")
+    table.add_column("Tests", justify="right")
+    table.add_column("Failed", justify="right")
+    table.add_column("Warned", justify="right")
+    table.add_column("Duration", justify="right")
+
+    status_colors = {"PASS": "green", "FAIL": "red", "WARN": "yellow"}
+
+    for run in runs:
+        status = run.get("overall_status", "?")
+        color = status_colors.get(status, "white")
+        table.add_row(
+            run.get("timestamp", ""),
+            run.get("run_id", "")[:8],
+            run.get("run_level", ""),
+            f"[{color}]{status}[/{color}]",
+            str(run.get("total", 0)),
+            str(run.get("failed", 0)),
+            str(run.get("warned", 0)),
+            f"{run.get('duration_s', 0):.1f}s",
+        )
+
+    console.print(table)
 
 
 if __name__ == "__main__":

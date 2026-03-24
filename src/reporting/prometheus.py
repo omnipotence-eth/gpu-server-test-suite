@@ -16,8 +16,8 @@ Metrics exposed:
   - gpu_diagnostic_run_total (counter): total diagnostic runs
   - gpu_diagnostic_last_run_timestamp (gauge): last run unix timestamp
 
-Uses Python's built-in http.server — no external deps required.
-For production, front with nginx or use the prometheus_client lib.
+Uses prometheus_client for correct exposition format and label handling.
+Front the /metrics endpoint with nginx or a load balancer for production.
 """
 
 import json
@@ -25,271 +25,164 @@ import threading
 import time
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
+from prometheus_client import (
+    CONTENT_TYPE_LATEST,
+    CollectorRegistry,
+    Counter,
+    Gauge,
+    generate_latest,
+)
+
 from src.inventory.gpu_inventory import GPUInfo
 from src.reporting.models import TestResult, TestStatus
 
+_STATUS_VALUES = {
+    TestStatus.PASS: 1,
+    TestStatus.FAIL: 0,
+    TestStatus.WARN: 2,
+    TestStatus.SKIP: 3,
+    TestStatus.ERROR: 0,
+}
+
 
 class MetricsStore:
-    """Thread-safe store for Prometheus metrics."""
+    """Thread-safe Prometheus metrics store backed by prometheus_client."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._lock = threading.Lock()
-        self._gpu_metrics: dict[int, dict[str, float]] = {}
-        self._ecc_metrics: dict[str, dict[str, int]] = {}
-        self._test_results: list[TestResult] = []
-        self._run_count = 0
-        self._last_run_timestamp = 0.0
+        self._registry = CollectorRegistry()
 
-    def update_gpu_metrics(
-        self, gpu_infos: list[GPUInfo],
-    ) -> None:
+        self._temp = Gauge(
+            "gpu_temperature_celsius", "Current GPU temperature", ["gpu"],
+            registry=self._registry,
+        )
+        self._power = Gauge(
+            "gpu_power_draw_watts", "Current GPU power draw", ["gpu"],
+            registry=self._registry,
+        )
+        self._mem_used = Gauge(
+            "gpu_memory_used_mib", "GPU VRAM usage in MiB", ["gpu"],
+            registry=self._registry,
+        )
+        self._clock = Gauge(
+            "gpu_clock_graphics_mhz", "GPU graphics clock in MHz", ["gpu"],
+            registry=self._registry,
+        )
+        self._ecc_sbe = Gauge(
+            "gpu_ecc_sbe_total", "Volatile single-bit ECC error count", ["gpu_uuid"],
+            registry=self._registry,
+        )
+        self._ecc_dbe = Gauge(
+            "gpu_ecc_dbe_total", "Volatile double-bit ECC error count", ["gpu_uuid"],
+            registry=self._registry,
+        )
+        self._diag_status = Gauge(
+            "gpu_diagnostic_status",
+            "Diagnostic test status (1=pass, 0=fail, 2=warn, 3=skip)",
+            ["test", "gpu_uuid"],
+            registry=self._registry,
+        )
+        self._diag_duration = Gauge(
+            "gpu_diagnostic_duration_seconds", "Diagnostic test duration", ["test"],
+            registry=self._registry,
+        )
+        # Named "gpu_diagnostic_run" so prometheus_client appends "_total"
+        # yielding the metric name "gpu_diagnostic_run_total" in output.
+        self._run_total = Counter(
+            "gpu_diagnostic_run", "Total diagnostic runs",
+            registry=self._registry,
+        )
+        self._last_run = Gauge(
+            "gpu_diagnostic_last_run_timestamp", "Timestamp of last diagnostic run",
+            registry=self._registry,
+        )
+
+    def update_gpu_metrics(self, gpu_infos: list[GPUInfo]) -> None:
         """Update GPU hardware metrics from inventory."""
         with self._lock:
             for gpu in gpu_infos:
-                self._gpu_metrics[gpu.index] = {
-                    "temperature_c": gpu.temperature_c,
-                    "power_draw_w": gpu.power_draw_w,
-                    "power_limit_w": gpu.power_limit_w,
-                    "vram_total_mib": gpu.vram_total_mib,
-                    "vram_used_mib": gpu.vram_used_mib,
-                    "vram_free_mib": gpu.vram_free_mib,
-                    "clock_graphics_mhz": gpu.clock_graphics_mhz,
-                    "clock_memory_mhz": gpu.clock_memory_mhz,
-                }
+                label = str(gpu.index)
+                self._temp.labels(gpu=label).set(gpu.temperature_c)
+                self._power.labels(gpu=label).set(gpu.power_draw_w)
+                self._mem_used.labels(gpu=label).set(gpu.vram_used_mib)
+                self._clock.labels(gpu=label).set(gpu.clock_graphics_mhz)
 
-    def update_test_results(
-        self, results: list[TestResult],
-    ) -> None:
+    def update_test_results(self, results: list[TestResult]) -> None:
         """Update with latest diagnostic test results.
 
-        Also extracts ECC volatile error counts from ecc_health results
-        so gpu_ecc_sbe_total and gpu_ecc_dbe_total are always current.
+        Increments the run counter, stamps the last-run timestamp, updates
+        per-test status/duration gauges, and extracts ECC volatile error
+        counts from ecc_health results.
         """
         with self._lock:
-            self._test_results = list(results)
-            self._run_count += 1
-            self._last_run_timestamp = time.time()
+            self._run_total.inc()
+            self._last_run.set(time.time())
             for r in results:
-                if (
-                    "ecc_health" in r.test_name
-                    and r.gpu_uuid
-                    and r.details
-                ):
+                gpu_label = r.gpu_uuid or ""
+                self._diag_status.labels(
+                    test=r.test_name, gpu_uuid=gpu_label
+                ).set(_STATUS_VALUES.get(r.status, 0))
+                self._diag_duration.labels(test=r.test_name).set(r.duration_seconds)
+
+                if "ecc_health" in r.test_name and r.gpu_uuid and r.details:
                     volatile = r.details.get("volatile", {})
-                    self._ecc_metrics[r.gpu_uuid] = {
-                        "sbe": volatile.get("sbe", 0),
-                        "dbe": volatile.get("dbe", 0),
-                    }
+                    self._ecc_sbe.labels(gpu_uuid=r.gpu_uuid).set(
+                        volatile.get("sbe", 0)
+                    )
+                    self._ecc_dbe.labels(gpu_uuid=r.gpu_uuid).set(
+                        volatile.get("dbe", 0)
+                    )
+
+    def generate_latest(self) -> bytes:
+        """Return Prometheus exposition format bytes."""
+        return generate_latest(self._registry)
 
     def format_prometheus(self) -> str:
-        """Format all metrics in Prometheus exposition format."""
-        with self._lock:
-            lines = []
-
-            # GPU hardware metrics
-            lines.append(
-                "# HELP gpu_temperature_celsius "
-                "Current GPU temperature"
-            )
-            lines.append(
-                "# TYPE gpu_temperature_celsius gauge"
-            )
-            for idx, m in self._gpu_metrics.items():
-                lines.append(
-                    f'gpu_temperature_celsius'
-                    f'{{gpu="{idx}"}} '
-                    f'{m["temperature_c"]}'
-                )
-
-            lines.append(
-                "# HELP gpu_power_draw_watts "
-                "Current GPU power draw"
-            )
-            lines.append(
-                "# TYPE gpu_power_draw_watts gauge"
-            )
-            for idx, m in self._gpu_metrics.items():
-                lines.append(
-                    f'gpu_power_draw_watts'
-                    f'{{gpu="{idx}"}} '
-                    f'{m["power_draw_w"]}'
-                )
-
-            lines.append(
-                "# HELP gpu_memory_used_mib "
-                "GPU VRAM usage in MiB"
-            )
-            lines.append(
-                "# TYPE gpu_memory_used_mib gauge"
-            )
-            for idx, m in self._gpu_metrics.items():
-                lines.append(
-                    f'gpu_memory_used_mib'
-                    f'{{gpu="{idx}"}} '
-                    f'{m["vram_used_mib"]}'
-                )
-
-            lines.append(
-                "# HELP gpu_clock_graphics_mhz "
-                "GPU graphics clock in MHz"
-            )
-            lines.append(
-                "# TYPE gpu_clock_graphics_mhz gauge"
-            )
-            for idx, m in self._gpu_metrics.items():
-                lines.append(
-                    f'gpu_clock_graphics_mhz'
-                    f'{{gpu="{idx}"}} '
-                    f'{m["clock_graphics_mhz"]}'
-                )
-
-            # ECC error counters (populated from ecc_health test results)
-            lines.append(
-                "# HELP gpu_ecc_sbe_total "
-                "Volatile single-bit ECC error count"
-            )
-            lines.append(
-                "# TYPE gpu_ecc_sbe_total gauge"
-            )
-            for uuid, ecc in self._ecc_metrics.items():
-                lines.append(
-                    f'gpu_ecc_sbe_total'
-                    f'{{gpu_uuid="{uuid}"}} '
-                    f'{ecc["sbe"]}'
-                )
-
-            lines.append(
-                "# HELP gpu_ecc_dbe_total "
-                "Volatile double-bit ECC error count"
-            )
-            lines.append(
-                "# TYPE gpu_ecc_dbe_total gauge"
-            )
-            for uuid, ecc in self._ecc_metrics.items():
-                lines.append(
-                    f'gpu_ecc_dbe_total'
-                    f'{{gpu_uuid="{uuid}"}} '
-                    f'{ecc["dbe"]}'
-                )
-
-            # Diagnostic test results
-            lines.append(
-                "# HELP gpu_diagnostic_status "
-                "Diagnostic test status "
-                "(1=pass, 0=fail, 2=warn, 3=skip)"
-            )
-            lines.append(
-                "# TYPE gpu_diagnostic_status gauge"
-            )
-            status_map = {
-                TestStatus.PASS: 1,
-                TestStatus.FAIL: 0,
-                TestStatus.WARN: 2,
-                TestStatus.SKIP: 3,
-            }
-            for r in self._test_results:
-                val = status_map.get(r.status, 0)
-                gpu_label = (
-                    f',gpu_uuid="{r.gpu_uuid}"'
-                    if r.gpu_uuid else ""
-                )
-                lines.append(
-                    f'gpu_diagnostic_status'
-                    f'{{test="{r.test_name}"'
-                    f'{gpu_label}}} {val}'
-                )
-
-            lines.append(
-                "# HELP gpu_diagnostic_duration_seconds "
-                "Diagnostic test duration"
-            )
-            lines.append(
-                "# TYPE gpu_diagnostic_duration_seconds gauge"
-            )
-            for r in self._test_results:
-                lines.append(
-                    f'gpu_diagnostic_duration_seconds'
-                    f'{{test="{r.test_name}"}} '
-                    f'{r.duration_seconds:.3f}'
-                )
-
-            # Run counter
-            lines.append(
-                "# HELP gpu_diagnostic_run_total "
-                "Total diagnostic runs"
-            )
-            lines.append(
-                "# TYPE gpu_diagnostic_run_total counter"
-            )
-            lines.append(
-                f"gpu_diagnostic_run_total "
-                f"{self._run_count}"
-            )
-
-            lines.append(
-                "# HELP gpu_diagnostic_last_run_timestamp "
-                "Timestamp of last diagnostic run"
-            )
-            lines.append(
-                "# TYPE gpu_diagnostic_last_run_timestamp gauge"
-            )
-            lines.append(
-                f"gpu_diagnostic_last_run_timestamp "
-                f"{self._last_run_timestamp:.0f}"
-            )
-
-            return "\n".join(lines) + "\n"
+        """Return Prometheus exposition format as a UTF-8 string."""
+        return self.generate_latest().decode("utf-8")
 
 
-# Global metrics store
+# Global metrics store singleton
 _metrics_store = MetricsStore()
 
 
 def get_metrics_store() -> MetricsStore:
-    """Get the global MetricsStore singleton."""
+    """Return the global MetricsStore singleton."""
     return _metrics_store
 
 
 class MetricsHandler(BaseHTTPRequestHandler):
     """HTTP handler for Prometheus /metrics endpoint."""
 
-    def _send_cors_headers(self):
-        """Add CORS headers for dashboard access."""
+    def _send_cors_headers(self) -> None:
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Methods", "GET")
 
-    def do_OPTIONS(self):
-        """Handle CORS preflight requests."""
+    def do_OPTIONS(self) -> None:
         self.send_response(200)
         self._send_cors_headers()
         self.end_headers()
 
-    def do_GET(self):
+    def do_GET(self) -> None:
         if self.path == "/metrics":
-            body = _metrics_store.format_prometheus()
+            body = _metrics_store.generate_latest()
             self.send_response(200)
-            self.send_header(
-                "Content-Type",
-                "text/plain; version=0.0.4; charset=utf-8",
-            )
+            self.send_header("Content-Type", CONTENT_TYPE_LATEST)
             self._send_cors_headers()
             self.end_headers()
-            self.wfile.write(body.encode("utf-8"))
+            self.wfile.write(body)
         elif self.path == "/health":
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self._send_cors_headers()
             self.end_headers()
-            self.wfile.write(
-                json.dumps({"status": "ok"}).encode("utf-8")
-            )
+            self.wfile.write(json.dumps({"status": "ok"}).encode("utf-8"))
         else:
             self.send_response(404)
             self.end_headers()
 
-    def log_message(self, format, *args):
+    def log_message(self, format, *args) -> None:  # noqa: A002
         """Suppress default request logging."""
-        pass
 
 
 def start_metrics_server(
@@ -310,9 +203,6 @@ def start_metrics_server(
         HTTPServer instance.
     """
     server = HTTPServer((host, port), MetricsHandler)
-    thread = threading.Thread(
-        target=server.serve_forever,
-        daemon=daemon,
-    )
+    thread = threading.Thread(target=server.serve_forever, daemon=daemon)
     thread.start()
     return server

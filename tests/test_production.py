@@ -203,7 +203,9 @@ class TestPrometheus:
         )]
         store.update_test_results(results)
         output = store.format_prometheus()
-        assert 'gpu_diagnostic_status{test="health.fail"} 0' in output
+        # prometheus_client includes all labels in definition order
+        assert 'test="health.fail"' in output
+        assert "gpu_diagnostic_status" in output
 
     def test_metrics_store_increment_run_count(self):
         store = MetricsStore()

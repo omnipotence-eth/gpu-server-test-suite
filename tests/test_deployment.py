@@ -49,7 +49,7 @@ class TestGPUCount:
     def test_wrong_count_fail(self, mock_gpu_info):
         result = _check_gpu_count([mock_gpu_info], expected_count=8)
         assert result.status == TestStatus.FAIL
-        assert result.failure_code == "DIAG-001"
+        assert result.failure_code == "DIAG-002"
         assert "8 expected" in result.message
 
     def test_zero_gpus_fail(self):
@@ -67,7 +67,7 @@ class TestGPUModel:
     def test_wrong_model_fail(self, mock_gpu_info):
         result = _check_gpu_model([mock_gpu_info], "H100 80GB")
         assert result.status == TestStatus.FAIL
-        assert result.failure_code == "DIAG-001"
+        assert result.failure_code == "DIAG-003"
 
     def test_case_insensitive_match(self, mock_gpu_info):
         result = _check_gpu_model([mock_gpu_info], "rtx 5070 ti")

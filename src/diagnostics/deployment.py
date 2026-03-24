@@ -4,15 +4,16 @@ Mirrors DCGM's Deployment Plugin: verifies the GPU server is correctly
 configured before running any performance or stress diagnostics.
 
 Checks performed:
-  - NVIDIA driver is loaded and responsive
-  - Expected number of GPUs detected
-  - GPU model matches expected profile
-  - ECC mode matches expected setting
+  - NVIDIA driver is loaded and responsive     (DIAG-001)
+  - Expected number of GPUs detected           (DIAG-002)
+  - GPU model matches expected profile         (DIAG-003)
+  - ECC mode matches expected setting          (DIAG-004)
   - No other processes using the GPU
   - Driver version meets minimum requirement
   - Persistence mode status
 """
 
+import contextlib
 import time
 from typing import Any
 
@@ -22,15 +23,31 @@ from src.inventory.gpu_inventory import GPUInfo
 from src.reporting.models import TestResult, TestStatus
 
 
+@contextlib.contextmanager
+def _nvml_session():
+    """Single pynvml session: init on enter, shutdown on exit.
+
+    If nvmlInit() raises, the exception propagates and nvmlShutdown()
+    is not called (correct — nothing to shut down).
+    """
+    pynvml.nvmlInit()
+    try:
+        yield
+    finally:
+        pynvml.nvmlShutdown()
+
+
 def _check_driver_loaded() -> TestResult:
-    """Verify NVIDIA driver is loaded and pynvml can initialize."""
+    """Verify NVIDIA driver is loaded and pynvml can initialize.
+
+    Opens its own session so it can be called standalone in tests.
+    """
     start = time.time()
     try:
-        pynvml.nvmlInit()
-        driver = pynvml.nvmlSystemGetDriverVersion()
-        if isinstance(driver, bytes):
-            driver = driver.decode("utf-8")
-        pynvml.nvmlShutdown()
+        with _nvml_session():
+            driver = pynvml.nvmlSystemGetDriverVersion()
+            if isinstance(driver, bytes):
+                driver = driver.decode("utf-8")
         return TestResult(
             test_name="deployment.driver_loaded",
             status=TestStatus.PASS,
@@ -66,7 +83,7 @@ def _check_gpu_count(gpu_infos: list[GPUInfo], expected_count: int) -> TestResul
         status=TestStatus.FAIL,
         duration_seconds=time.time() - start,
         message=f"GPU count mismatch: {actual} detected, {expected_count} expected",
-        failure_code="DIAG-001",
+        failure_code="DIAG-002",
         details={"detected": actual, "expected": expected_count},
     )
 
@@ -92,7 +109,7 @@ def _check_gpu_model(gpu_infos: list[GPUInfo], expected_model: str) -> TestResul
         status=TestStatus.FAIL,
         duration_seconds=time.time() - start,
         message=f"GPU model mismatch: expected '{expected_model}'",
-        failure_code="DIAG-001",
+        failure_code="DIAG-003",
         details={"expected": expected_model, "mismatches": mismatches},
     )
 
@@ -135,7 +152,7 @@ def _check_ecc_mode(gpu_infos: list[GPUInfo], profile: dict[str, Any]) -> TestRe
         status=TestStatus.FAIL if any_fail else TestStatus.PASS,
         duration_seconds=time.time() - start,
         message="ECC mode check complete",
-        failure_code="DIAG-001" if any_fail else "",
+        failure_code="DIAG-004" if any_fail else "",
         details={"results": results},
     )
 
@@ -148,33 +165,31 @@ def _check_gpu_processes(gpu_infos: list[GPUInfo]) -> TestResult:
     and system UI. These are not real compute workloads. We filter to processes
     with >100 MB VRAM usage, which reliably identifies actual CUDA workloads
     (ML inference, training) while ignoring display/system processes.
+
+    Requires an active nvml session (caller holds _nvml_session()).
     """
     start = time.time()
     busy_gpus = []
     COMPUTE_VRAM_THRESHOLD_MB = 100
 
-    pynvml.nvmlInit()
-    try:
-        for gpu in gpu_infos:
-            handle = pynvml.nvmlDeviceGetHandleByIndex(gpu.index)
-            try:
-                procs = pynvml.nvmlDeviceGetComputeRunningProcesses(handle)
-                heavy = [
-                    p for p in procs
-                    if (p.usedGpuMemory or 0) > COMPUTE_VRAM_THRESHOLD_MB * 1024 * 1024
-                ]
-                if heavy:
-                    busy_gpus.append(
-                        {
-                            "index": gpu.index,
-                            "process_count": len(heavy),
-                            "pids": [p.pid for p in heavy],
-                        }
-                    )
-            except pynvml.NVMLError:
-                pass  # Some consumer GPUs don't support this query
-    finally:
-        pynvml.nvmlShutdown()
+    for gpu in gpu_infos:
+        handle = pynvml.nvmlDeviceGetHandleByIndex(gpu.index)
+        try:
+            procs = pynvml.nvmlDeviceGetComputeRunningProcesses(handle)
+            heavy = [
+                p for p in procs
+                if (p.usedGpuMemory or 0) > COMPUTE_VRAM_THRESHOLD_MB * 1024 * 1024
+            ]
+            if heavy:
+                busy_gpus.append(
+                    {
+                        "index": gpu.index,
+                        "process_count": len(heavy),
+                        "pids": [p.pid for p in heavy],
+                    }
+                )
+        except pynvml.NVMLError:
+            pass  # Some consumer GPUs don't support this query
 
     if busy_gpus:
         return TestResult(
@@ -197,22 +212,21 @@ def _check_gpu_processes(gpu_infos: list[GPUInfo]) -> TestResult:
 
 
 def _check_persistence_mode(gpu_infos: list[GPUInfo]) -> TestResult:
-    """Check persistence mode status (data center GPUs should have it enabled)."""
+    """Check persistence mode status (data center GPUs should have it enabled).
+
+    Requires an active nvml session (caller holds _nvml_session()).
+    """
     start = time.time()
     results = []
 
-    pynvml.nvmlInit()
-    try:
-        for gpu in gpu_infos:
-            handle = pynvml.nvmlDeviceGetHandleByIndex(gpu.index)
-            try:
-                mode = pynvml.nvmlDeviceGetPersistenceMode(handle)
-                mode_str = "enabled" if mode == pynvml.NVML_FEATURE_ENABLED else "disabled"
-                results.append({"index": gpu.index, "persistence_mode": mode_str})
-            except pynvml.NVMLError:
-                results.append({"index": gpu.index, "persistence_mode": "unknown"})
-    finally:
-        pynvml.nvmlShutdown()
+    for gpu in gpu_infos:
+        handle = pynvml.nvmlDeviceGetHandleByIndex(gpu.index)
+        try:
+            mode = pynvml.nvmlDeviceGetPersistenceMode(handle)
+            mode_str = "enabled" if mode == pynvml.NVML_FEATURE_ENABLED else "disabled"
+            results.append({"index": gpu.index, "persistence_mode": mode_str})
+        except pynvml.NVMLError:
+            results.append({"index": gpu.index, "persistence_mode": "unknown"})
 
     return TestResult(
         test_name="deployment.persistence_mode",
@@ -230,6 +244,10 @@ def run_deployment_checks(
 ) -> list[TestResult]:
     """Execute all Level 1 deployment validation checks.
 
+    Opens a single nvml session for the entire run. If the driver is not
+    loaded, returns a FAIL for driver_loaded and SKIP for all remaining
+    checks that require nvml access.
+
     Args:
         gpu_infos: List of detected GPUInfo objects.
         config: Master test configuration dict.
@@ -240,14 +258,51 @@ def run_deployment_checks(
     """
     expected_count = config.get("expected", {}).get("gpu_count", 1)
     expected_model = profile.get("gpu_model", "")
+    start = time.time()
 
-    results = [
-        _check_driver_loaded(),
-        _check_gpu_count(gpu_infos, expected_count),
-        _check_gpu_model(gpu_infos, expected_model),
-        _check_ecc_mode(gpu_infos, profile),
-        _check_gpu_processes(gpu_infos),
-        _check_persistence_mode(gpu_infos),
-    ]
-
-    return results
+    try:
+        with _nvml_session():
+            driver = pynvml.nvmlSystemGetDriverVersion()
+            if isinstance(driver, bytes):
+                driver = driver.decode("utf-8")
+            driver_result = TestResult(
+                test_name="deployment.driver_loaded",
+                status=TestStatus.PASS,
+                duration_seconds=time.time() - start,
+                message=f"NVIDIA driver loaded: v{driver}",
+                details={"driver_version": driver},
+            )
+            return [
+                driver_result,
+                _check_gpu_count(gpu_infos, expected_count),
+                _check_gpu_model(gpu_infos, expected_model),
+                _check_ecc_mode(gpu_infos, profile),
+                _check_gpu_processes(gpu_infos),
+                _check_persistence_mode(gpu_infos),
+            ]
+    except pynvml.NVMLError as e:
+        return [
+            TestResult(
+                test_name="deployment.driver_loaded",
+                status=TestStatus.FAIL,
+                duration_seconds=time.time() - start,
+                message=f"NVIDIA driver not loaded: {e}",
+                failure_code="DIAG-001",
+                details={"error": str(e)},
+            ),
+            *(
+                TestResult(
+                    test_name=name,
+                    status=TestStatus.SKIP,
+                    duration_seconds=0.0,
+                    message="Skipped: driver not available",
+                )
+                for name in [
+                    "deployment.gpu_count",
+                    "deployment.gpu_model",
+                    "deployment.ecc_mode",
+                    "deployment.gpu_processes",
+                    "deployment.persistence_mode",
+                ]
+            ),
+        ]
