@@ -1,12 +1,24 @@
 """Clock throttling analysis — GPU performance degradation detection.
 
-Detects and classifies GPU clock throttling reasons:
-  - Thermal throttling (temperature limit reached)
-  - Power brake (external power brake assertion)
-  - HW slowdown (hardware thermal/power protection)
-  - SW thermal slowdown (software thermal limit)
-  - Sync boost (multi-GPU sync limiting clocks)
-  - Application clock setting (user-set clock limit)
+Classifies GPU clock throttling into three tiers:
+
+  FAIL  — Hardware protection events that degrade performance and indicate
+           a real problem requiring investigation:
+             HW_SLOWDOWN, SW_THERMAL_SLOWDOWN, HW_THERMAL_SLOWDOWN,
+             HW_POWER_BRAKE_SLOWDOWN
+
+  WARN  — Unexpected software-initiated limiting that reduces performance
+           but is not a hardware fault (e.g. SYNC_BOOST on a single GPU,
+           which should not be active outside multi-GPU configurations).
+
+  PASS  — Normal operating states that are expected and not actionable:
+             GPU_IDLE           — GPU is idle, clocks downshifted by driver
+             SW_POWER_CAP       — User or software set a power limit (NVIDIA
+                                  App, nvidia-smi) — expected on workstations
+             APPLICATIONS_CLOCKS_SETTING — App requested specific clocks,
+                                  normal after compute workloads
+             DISPLAY_CLOCK_SETTING — Display driver clock management,
+                                  expected on desktop GPUs
 
 Uses NVML throttle reason bitmask for precise classification.
 Mirrors DCGM's throttle monitoring for production reliability.
@@ -32,12 +44,20 @@ THROTTLE_REASONS = {
     0x0000000000000100: "DISPLAY_CLOCK_SETTING",
 }
 
-# Reasons that indicate a real problem
+# Hardware faults — always FAIL
 PROBLEM_THROTTLE_BITS = {
     0x0000000000000008: "HW_SLOWDOWN",
     0x0000000000000020: "SW_THERMAL_SLOWDOWN",
     0x0000000000000040: "HW_THERMAL_SLOWDOWN",
     0x0000000000000080: "HW_POWER_BRAKE_SLOWDOWN",
+}
+
+# Normal operating states — always PASS, never warn
+NORMAL_THROTTLE_BITS = {
+    0x0000000000000001: "GPU_IDLE",
+    0x0000000000000002: "APPLICATIONS_CLOCKS_SETTING",
+    0x0000000000000004: "SW_POWER_CAP",
+    0x0000000000000100: "DISPLAY_CLOCK_SETTING",
 }
 
 
@@ -142,11 +162,17 @@ def _check_clock_throttling(
 
     active = throttle_data.get("active_reasons", [])
     problem_reasons = [r for r in active if r.get("is_problem")]
+    unexpected_reasons = [
+        r for r in active
+        if not r.get("is_problem")
+        and int(r["bit"], 16) not in NORMAL_THROTTLE_BITS
+    ]
 
     details = {
         "gpu_index": gpu.index,
         **throttle_data,
         "problem_reasons": problem_reasons,
+        "unexpected_reasons": unexpected_reasons,
     }
 
     if problem_reasons:
@@ -165,18 +191,14 @@ def _check_clock_throttling(
             details=details,
         )
 
-    # Check if clocks are running well below max (non-idle)
-    non_idle_active = [
-        r for r in active if r["reason"] != "GPU_IDLE"
-    ]
-    if non_idle_active:
-        reason_names = [r["reason"] for r in non_idle_active]
+    if unexpected_reasons:
+        reason_names = [r["reason"] for r in unexpected_reasons]
         return TestResult(
             test_name="telemetry.clock_throttle",
             status=TestStatus.WARN,
             duration_seconds=time.time() - start,
             message=(
-                f"Clock limiting active: "
+                f"Unexpected clock limiting active: "
                 f"{', '.join(reason_names)}"
             ),
             gpu_uuid=gpu.uuid,
