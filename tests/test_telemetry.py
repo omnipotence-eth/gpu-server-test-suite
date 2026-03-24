@@ -139,6 +139,9 @@ class TestClockThrottle:
 
     @patch("src.diagnostics.clock_throttle._get_throttle_reasons")
     def test_app_clock_limiting(self, mock_reasons):
+        # APPLICATIONS_CLOCKS_SETTING is a normal operating state — an app
+        # requested specific clocks (common after compute workloads). It is
+        # not a hardware problem and should not trigger WARN.
         mock_reasons.return_value = {
             "throttle_bitmask": "0x2",
             "supported_bitmask": "0xff",
@@ -152,7 +155,7 @@ class TestClockThrottle:
             "clock_reduction_pct": 20.2,
         }
         result = _check_clock_throttling(MOCK_GPU_INFO, {})
-        assert result.status == TestStatus.WARN
+        assert result.status == TestStatus.PASS
 
     @patch("src.diagnostics.clock_throttle._get_throttle_reasons")
     def test_skip_on_error(self, mock_reasons):
