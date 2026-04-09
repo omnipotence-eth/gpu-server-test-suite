@@ -65,34 +65,24 @@ class TestRunner:
 
         self._registry = {
             # Level 1 — Deployment
-            "deployment": lambda: run_deployment_checks(
-                gpu, cfg, prof
-            ),
+            "deployment": lambda: run_deployment_checks(gpu, cfg, prof),
             # Level 2 — Validation
             "gpu_health": lambda: run_gpu_health_checks(gpu, prof),
-            "pcie_validation": lambda: run_pcie_validation(
-                gpu, prof
-            ),
+            "pcie_validation": lambda: run_pcie_validation(gpu, prof),
             "memory_test": lambda: run_memory_test(gpu, prof),
             # Level 3 — Stress
             "pcie_bandwidth": lambda: run_pcie_bandwidth(gpu, prof),
-            "memory_bandwidth": lambda: run_memory_bandwidth(
-                gpu, prof
-            ),
+            "memory_bandwidth": lambda: run_memory_bandwidth(gpu, prof),
             "compute_stress": lambda: run_compute_stress(gpu, prof),
             "sm_stress": lambda: run_sm_stress(gpu, prof),
             "power_test": lambda: run_power_test(gpu, prof),
             # Advanced Telemetry
             "xid_errors": lambda: run_xid_checks(gpu, prof),
-            "clock_throttle": lambda: run_clock_throttle_checks(
-                gpu, prof
-            ),
+            "clock_throttle": lambda: run_clock_throttle_checks(gpu, prof),
             "ecc_health": lambda: run_ecc_health_checks(gpu, prof),
             # Interconnect & Topology
             "nvlink_p2p": lambda: run_nvlink_p2p(gpu, prof),
-            "nccl_validation": lambda: run_nccl_validation(
-                gpu, prof
-            ),
+            "nccl_validation": lambda: run_nccl_validation(gpu, prof),
             "topology_map": lambda: run_topology_map(gpu, prof),
             # Cleanup
             "cleanup": lambda: run_cleanup(gpu, prof),
@@ -123,9 +113,7 @@ class TestRunner:
                     test_name=test_name,
                     status=TestStatus.SKIP,
                     duration_seconds=0.0,
-                    message=(
-                        f"Test module '{test_name}' not registered"
-                    ),
+                    message=(f"Test module '{test_name}' not registered"),
                 )
             ]
 
@@ -143,18 +131,17 @@ class TestRunner:
             ]
 
     def _build_diagnostic_run(
-        self, level, all_results, run_id, run_duration,
+        self,
+        level,
+        all_results,
+        run_id,
+        run_duration,
     ) -> DiagnosticRun:
         """Build a DiagnosticRun from collected results."""
         import socket
 
-        any_fail = any(
-            r.status in (TestStatus.FAIL, TestStatus.ERROR)
-            for r in all_results
-        )
-        any_warn = any(
-            r.status == TestStatus.WARN for r in all_results
-        )
+        any_fail = any(r.status in (TestStatus.FAIL, TestStatus.ERROR) for r in all_results)
+        any_warn = any(r.status == TestStatus.WARN for r in all_results)
 
         if any_fail:
             overall = TestStatus.FAIL
@@ -204,7 +191,10 @@ class TestRunner:
 
         run_duration = time.time() - run_start
         return self._build_diagnostic_run(
-            level, all_results, run_id, run_duration,
+            level,
+            all_results,
+            run_id,
+            run_duration,
         )
 
     def run_with_preflight(self, level: str) -> DiagnosticRun:
@@ -228,19 +218,14 @@ class TestRunner:
         all_results.extend(health_results)
 
         # Abort if any health check FAILed
-        health_failed = any(
-            r.status == TestStatus.FAIL for r in health_results
-        )
+        health_failed = any(r.status == TestStatus.FAIL for r in health_results)
         if health_failed:
             all_results.append(
                 TestResult(
                     test_name="preflight.abort",
                     status=TestStatus.SKIP,
                     duration_seconds=0.0,
-                    message=(
-                        "Remaining tests skipped — "
-                        "pre-flight health check failed"
-                    ),
+                    message=("Remaining tests skipped — pre-flight health check failed"),
                 )
             )
         else:
@@ -254,7 +239,10 @@ class TestRunner:
 
         run_duration = time.time() - run_start
         return self._build_diagnostic_run(
-            level, all_results, run_id, run_duration,
+            level,
+            all_results,
+            run_id,
+            run_duration,
         )
 
     def run_with_cleanup(self, level: str) -> DiagnosticRun:
@@ -284,5 +272,8 @@ class TestRunner:
 
         run_duration = time.time() - run_start
         return self._build_diagnostic_run(
-            level, all_results, run_id, run_duration,
+            level,
+            all_results,
+            run_id,
+            run_duration,
         )

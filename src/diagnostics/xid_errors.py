@@ -72,10 +72,12 @@ def _query_xid_from_dmesg() -> list[dict]:
             if "NVRM: Xid" in line:
                 match = _XID_RE.search(line)
                 if match:
-                    xid_events.append({
-                        "xid": int(match.group(1)),
-                        "raw": line.strip(),
-                    })
+                    xid_events.append(
+                        {
+                            "xid": int(match.group(1)),
+                            "raw": line.strip(),
+                        }
+                    )
         return xid_events
     except (subprocess.TimeoutExpired, FileNotFoundError):
         return []
@@ -99,18 +101,19 @@ def _query_xid_via_nvml(gpu_index: int) -> list[dict]:
                 remapped = pynvml.nvmlDeviceGetRemappedRows(handle)
                 correctable, uncorrectable, pending, failure = remapped
                 if uncorrectable > 0:
-                    xid_events.append({
-                        "xid": 64,
-                        "detail": (
-                            f"Uncorrectable remapped rows: "
-                            f"{uncorrectable}"
-                        ),
-                    })
+                    xid_events.append(
+                        {
+                            "xid": 64,
+                            "detail": (f"Uncorrectable remapped rows: {uncorrectable}"),
+                        }
+                    )
                 if failure:
-                    xid_events.append({
-                        "xid": 63,
-                        "detail": "Row remapping failure detected",
-                    })
+                    xid_events.append(
+                        {
+                            "xid": 63,
+                            "detail": "Row remapping failure detected",
+                        }
+                    )
             except (pynvml.NVMLError, AttributeError):
                 pass
 
@@ -134,36 +137,38 @@ def _check_xid_errors(
     all_xids = []
     for evt in dmesg_xids:
         xid = evt["xid"]
-        all_xids.append({
-            "xid": xid,
-            "source": "dmesg",
-            "description": XID_DESCRIPTIONS.get(xid, "Unknown"),
-            "severity": (
-                "CRITICAL" if xid in CRITICAL_XIDS
-                else ("WARNING" if xid in WARNING_XIDS else "INFO")
-            ),
-            "raw": evt.get("raw", ""),
-        })
+        all_xids.append(
+            {
+                "xid": xid,
+                "source": "dmesg",
+                "description": XID_DESCRIPTIONS.get(xid, "Unknown"),
+                "severity": (
+                    "CRITICAL"
+                    if xid in CRITICAL_XIDS
+                    else ("WARNING" if xid in WARNING_XIDS else "INFO")
+                ),
+                "raw": evt.get("raw", ""),
+            }
+        )
 
     for evt in nvml_xids:
         xid = evt["xid"]
-        all_xids.append({
-            "xid": xid,
-            "source": "nvml",
-            "description": XID_DESCRIPTIONS.get(xid, "Unknown"),
-            "severity": (
-                "CRITICAL" if xid in CRITICAL_XIDS
-                else ("WARNING" if xid in WARNING_XIDS else "INFO")
-            ),
-            "detail": evt.get("detail", ""),
-        })
+        all_xids.append(
+            {
+                "xid": xid,
+                "source": "nvml",
+                "description": XID_DESCRIPTIONS.get(xid, "Unknown"),
+                "severity": (
+                    "CRITICAL"
+                    if xid in CRITICAL_XIDS
+                    else ("WARNING" if xid in WARNING_XIDS else "INFO")
+                ),
+                "detail": evt.get("detail", ""),
+            }
+        )
 
-    critical_count = sum(
-        1 for x in all_xids if x["severity"] == "CRITICAL"
-    )
-    warning_count = sum(
-        1 for x in all_xids if x["severity"] == "WARNING"
-    )
+    critical_count = sum(1 for x in all_xids if x["severity"] == "CRITICAL")
+    warning_count = sum(1 for x in all_xids if x["severity"] == "WARNING")
 
     details = {
         "gpu_index": gpu.index,
@@ -174,17 +179,12 @@ def _check_xid_errors(
     }
 
     if critical_count > 0:
-        critical_ids = [
-            x["xid"] for x in all_xids if x["severity"] == "CRITICAL"
-        ]
+        critical_ids = [x["xid"] for x in all_xids if x["severity"] == "CRITICAL"]
         return TestResult(
             test_name="telemetry.xid_errors",
             status=TestStatus.FAIL,
             duration_seconds=time.time() - start,
-            message=(
-                f"Critical XID errors detected: "
-                f"{critical_ids} — node drain recommended"
-            ),
+            message=(f"Critical XID errors detected: {critical_ids} — node drain recommended"),
             failure_code="DIAG-900",
             gpu_uuid=gpu.uuid,
             details=details,
@@ -195,10 +195,7 @@ def _check_xid_errors(
             test_name="telemetry.xid_errors",
             status=TestStatus.WARN,
             duration_seconds=time.time() - start,
-            message=(
-                f"{warning_count} XID warning(s) detected — "
-                f"monitor closely"
-            ),
+            message=(f"{warning_count} XID warning(s) detected — monitor closely"),
             gpu_uuid=gpu.uuid,
             details=details,
         )

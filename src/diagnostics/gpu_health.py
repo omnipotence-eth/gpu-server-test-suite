@@ -94,12 +94,14 @@ def _check_power_baseline(gpu_infos: list[GPUInfo], profile: dict[str, Any]) -> 
         if power > idle_max:
             any_high = True
             status = "HIGH"
-        gpu_power.append({
-            "index": gpu.index,
-            "power_w": power,
-            "limit_w": gpu.power_limit_w,
-            "status": status,
-        })
+        gpu_power.append(
+            {
+                "index": gpu.index,
+                "power_w": power,
+                "limit_w": gpu.power_limit_w,
+                "status": status,
+            }
+        )
 
     if any_high:
         return TestResult(
@@ -132,15 +134,17 @@ def _check_vram_available(gpu_infos: list[GPUInfo], profile: dict[str, Any]) -> 
         sufficient = gpu.vram_free_mib >= needed_mib
         if not sufficient:
             any_insufficient = True
-        gpu_vram.append({
-            "index": gpu.index,
-            "total_mib": gpu.vram_total_mib,
-            "free_mib": gpu.vram_free_mib,
-            "used_mib": gpu.vram_used_mib,
-            "free_pct": round(free_pct, 1),
-            "needed_mib": needed_mib,
-            "sufficient": sufficient,
-        })
+        gpu_vram.append(
+            {
+                "index": gpu.index,
+                "total_mib": gpu.vram_total_mib,
+                "free_mib": gpu.vram_free_mib,
+                "used_mib": gpu.vram_used_mib,
+                "free_pct": round(free_pct, 1),
+                "needed_mib": needed_mib,
+                "sufficient": sufficient,
+            }
+        )
 
     if any_insufficient:
         return TestResult(
@@ -169,14 +173,16 @@ def _check_clocks_responsive(gpu_infos: list[GPUInfo]) -> TestResult:
         stuck = gpu.clock_graphics_max_mhz == 0 and gpu.clock_memory_max_mhz == 0
         if stuck:
             any_stuck = True
-        gpu_clocks.append({
-            "index": gpu.index,
-            "graphics_mhz": gpu.clock_graphics_mhz,
-            "graphics_max_mhz": gpu.clock_graphics_max_mhz,
-            "memory_mhz": gpu.clock_memory_mhz,
-            "memory_max_mhz": gpu.clock_memory_max_mhz,
-            "responsive": not stuck,
-        })
+        gpu_clocks.append(
+            {
+                "index": gpu.index,
+                "graphics_mhz": gpu.clock_graphics_mhz,
+                "graphics_max_mhz": gpu.clock_graphics_max_mhz,
+                "memory_mhz": gpu.clock_memory_mhz,
+                "memory_max_mhz": gpu.clock_memory_max_mhz,
+                "responsive": not stuck,
+            }
+        )
 
     if any_stuck:
         return TestResult(

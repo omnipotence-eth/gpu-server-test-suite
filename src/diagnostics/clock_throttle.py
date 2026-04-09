@@ -75,36 +75,27 @@ def _get_throttle_reasons(gpu_index: int) -> dict:
 
             # Get current throttle reasons
             try:
-                throttle_reasons = (
-                    pynvml.nvmlDeviceGetCurrentClocksThrottleReasons(
-                        handle
-                    )
-                )
+                throttle_reasons = pynvml.nvmlDeviceGetCurrentClocksThrottleReasons(handle)
             except (pynvml.NVMLError, AttributeError):
                 throttle_reasons = 0
 
             # Get supported throttle reasons
             try:
-                supported = (
-                    pynvml.nvmlDeviceGetSupportedClocksThrottleReasons(
-                        handle
-                    )
-                )
+                supported = pynvml.nvmlDeviceGetSupportedClocksThrottleReasons(handle)
             except (pynvml.NVMLError, AttributeError):
                 supported = 0xFFFFFFFF
 
             # Get current clocks for context
             try:
                 graphics_clock = pynvml.nvmlDeviceGetClockInfo(
-                    handle, 0  # NVML_CLOCK_GRAPHICS
+                    handle,
+                    0,  # NVML_CLOCK_GRAPHICS
                 )
             except pynvml.NVMLError:
                 graphics_clock = 0
 
             try:
-                max_graphics = pynvml.nvmlDeviceGetMaxClockInfo(
-                    handle, 0
-                )
+                max_graphics = pynvml.nvmlDeviceGetMaxClockInfo(handle, 0)
             except pynvml.NVMLError:
                 max_graphics = 0
 
@@ -112,11 +103,13 @@ def _get_throttle_reasons(gpu_index: int) -> dict:
             active_reasons = []
             for bit, name in THROTTLE_REASONS.items():
                 if throttle_reasons & bit:
-                    active_reasons.append({
-                        "bit": hex(bit),
-                        "reason": name,
-                        "is_problem": bit in PROBLEM_THROTTLE_BITS,
-                    })
+                    active_reasons.append(
+                        {
+                            "bit": hex(bit),
+                            "reason": name,
+                            "is_problem": bit in PROBLEM_THROTTLE_BITS,
+                        }
+                    )
 
             return {
                 "throttle_bitmask": hex(throttle_reasons),
@@ -125,11 +118,7 @@ def _get_throttle_reasons(gpu_index: int) -> dict:
                 "graphics_clock_mhz": graphics_clock,
                 "max_graphics_clock_mhz": max_graphics,
                 "clock_reduction_pct": (
-                    round(
-                        (1 - graphics_clock / max_graphics) * 100, 1
-                    )
-                    if max_graphics > 0
-                    else 0
+                    round((1 - graphics_clock / max_graphics) * 100, 1) if max_graphics > 0 else 0
                 ),
             }
         finally:
@@ -152,10 +141,7 @@ def _check_clock_throttling(
             test_name="telemetry.clock_throttle",
             status=TestStatus.SKIP,
             duration_seconds=time.time() - start,
-            message=(
-                f"Could not query throttle reasons: "
-                f"{throttle_data['error']}"
-            ),
+            message=(f"Could not query throttle reasons: {throttle_data['error']}"),
             gpu_uuid=gpu.uuid,
             details=throttle_data,
         )
@@ -163,9 +149,9 @@ def _check_clock_throttling(
     active = throttle_data.get("active_reasons", [])
     problem_reasons = [r for r in active if r.get("is_problem")]
     unexpected_reasons = [
-        r for r in active
-        if not r.get("is_problem")
-        and int(r["bit"], 16) not in NORMAL_THROTTLE_BITS
+        r
+        for r in active
+        if not r.get("is_problem") and int(r["bit"], 16) not in NORMAL_THROTTLE_BITS
     ]
 
     details = {
@@ -182,10 +168,7 @@ def _check_clock_throttling(
             test_name="telemetry.clock_throttle",
             status=TestStatus.FAIL,
             duration_seconds=time.time() - start,
-            message=(
-                f"GPU throttled: {', '.join(reason_names)} "
-                f"(clock reduced {reduction}%)"
-            ),
+            message=(f"GPU throttled: {', '.join(reason_names)} (clock reduced {reduction}%)"),
             failure_code="DIAG-910",
             gpu_uuid=gpu.uuid,
             details=details,
@@ -197,10 +180,7 @@ def _check_clock_throttling(
             test_name="telemetry.clock_throttle",
             status=TestStatus.WARN,
             duration_seconds=time.time() - start,
-            message=(
-                f"Unexpected clock limiting active: "
-                f"{', '.join(reason_names)}"
-            ),
+            message=(f"Unexpected clock limiting active: {', '.join(reason_names)}"),
             gpu_uuid=gpu.uuid,
             details=details,
         )
@@ -220,6 +200,4 @@ def run_clock_throttle_checks(
     profile: dict[str, Any],
 ) -> list[TestResult]:
     """Execute clock throttle analysis on all GPUs."""
-    return [
-        _check_clock_throttling(gpu, profile) for gpu in gpu_infos
-    ]
+    return [_check_clock_throttling(gpu, profile) for gpu in gpu_infos]

@@ -101,7 +101,7 @@ def _measure_sm_throughput(
                 status=TestStatus.FAIL,
                 duration_seconds=time.time() - start,
                 message=f"SM throughput below target: {peak_gflops:.0f} GFLOPS "
-                        f"(min: {min_acceptable:.0f} GFLOPS)",
+                f"(min: {min_acceptable:.0f} GFLOPS)",
                 failure_code="DIAG-700",
                 gpu_uuid=gpu.uuid,
                 details=details,
@@ -113,7 +113,7 @@ def _measure_sm_throughput(
                 status=TestStatus.WARN,
                 duration_seconds=time.time() - start,
                 message=f"SM throughput inconsistent: peak {peak_gflops:.0f}, "
-                        f"median {median_gflops:.0f} GFLOPS",
+                f"median {median_gflops:.0f} GFLOPS",
                 gpu_uuid=gpu.uuid,
                 details=details,
             )
@@ -123,7 +123,7 @@ def _measure_sm_throughput(
             status=TestStatus.PASS,
             duration_seconds=time.time() - start,
             message=f"SM throughput OK: {peak_gflops:.0f} GFLOPS "
-                    f"(target: {target_gflops:.0f} GFLOPS)",
+            f"(target: {target_gflops:.0f} GFLOPS)",
             gpu_uuid=gpu.uuid,
             details=details,
         )

@@ -69,12 +69,15 @@ class TestXIDErrors:
     @patch("src.diagnostics.xid_errors._query_xid_via_nvml")
     @patch("src.diagnostics.xid_errors._query_xid_from_dmesg")
     def test_run_xid_checks_multi_gpu(
-        self, mock_dmesg, mock_nvml,
+        self,
+        mock_dmesg,
+        mock_nvml,
     ):
         mock_dmesg.return_value = []
         mock_nvml.return_value = []
         results = run_xid_checks(
-            [MOCK_GPU_INFO, MOCK_GPU_INFO], {},
+            [MOCK_GPU_INFO, MOCK_GPU_INFO],
+            {},
         )
         assert len(results) == 2
 
@@ -82,7 +85,7 @@ class TestXIDErrors:
         """Verify XID severity classification constants."""
         assert 79 in CRITICAL_XIDS  # GPU off bus
         assert 31 in CRITICAL_XIDS  # Memory page fault
-        assert 92 in WARNING_XIDS   # SBE rate
+        assert 92 in WARNING_XIDS  # SBE rate
 
     def test_dmesg_regex_parses_xid_not_pci_address(self):
         """Regex must extract the XID code, not PCI address bytes.
@@ -131,11 +134,13 @@ class TestClockThrottle:
         mock_reasons.return_value = {
             "throttle_bitmask": "0x40",
             "supported_bitmask": "0xff",
-            "active_reasons": [{
-                "bit": "0x40",
-                "reason": "HW_THERMAL_SLOWDOWN",
-                "is_problem": True,
-            }],
+            "active_reasons": [
+                {
+                    "bit": "0x40",
+                    "reason": "HW_THERMAL_SLOWDOWN",
+                    "is_problem": True,
+                }
+            ],
             "graphics_clock_mhz": 1800,
             "max_graphics_clock_mhz": 2632,
             "clock_reduction_pct": 31.6,
@@ -150,11 +155,13 @@ class TestClockThrottle:
         mock_reasons.return_value = {
             "throttle_bitmask": "0x80",
             "supported_bitmask": "0xff",
-            "active_reasons": [{
-                "bit": "0x80",
-                "reason": "HW_POWER_BRAKE_SLOWDOWN",
-                "is_problem": True,
-            }],
+            "active_reasons": [
+                {
+                    "bit": "0x80",
+                    "reason": "HW_POWER_BRAKE_SLOWDOWN",
+                    "is_problem": True,
+                }
+            ],
             "graphics_clock_mhz": 2000,
             "max_graphics_clock_mhz": 2632,
             "clock_reduction_pct": 24.0,
@@ -171,11 +178,13 @@ class TestClockThrottle:
         mock_reasons.return_value = {
             "throttle_bitmask": "0x2",
             "supported_bitmask": "0xff",
-            "active_reasons": [{
-                "bit": "0x2",
-                "reason": "APPLICATIONS_CLOCKS_SETTING",
-                "is_problem": False,
-            }],
+            "active_reasons": [
+                {
+                    "bit": "0x2",
+                    "reason": "APPLICATIONS_CLOCKS_SETTING",
+                    "is_problem": False,
+                }
+            ],
             "graphics_clock_mhz": 2100,
             "max_graphics_clock_mhz": 2632,
             "clock_reduction_pct": 20.2,
@@ -203,7 +212,8 @@ class TestClockThrottle:
             "clock_reduction_pct": 0,
         }
         results = run_clock_throttle_checks(
-            [MOCK_GPU_INFO, MOCK_GPU_INFO], {},
+            [MOCK_GPU_INFO, MOCK_GPU_INFO],
+            {},
         )
         assert len(results) == 2
 

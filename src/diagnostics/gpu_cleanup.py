@@ -41,9 +41,7 @@ def _cleanup_cuda_context(gpu_index: int) -> dict:
         except AttributeError:
             pass
         result["cuda_cleanup"] = "success"
-        result["memory_cached_after"] = (
-            torch.cuda.memory_reserved(device)
-        )
+        result["memory_cached_after"] = torch.cuda.memory_reserved(device)
     except Exception as e:
         result["cuda_cleanup"] = f"error: {e}"
 
@@ -78,20 +76,10 @@ def _reset_power_limit(gpu_index: int) -> dict:
         try:
             handle = pynvml.nvmlDeviceGetHandleByIndex(gpu_index)
             try:
-                default_limit = (
-                    pynvml.nvmlDeviceGetPowerManagementDefaultLimit(
-                        handle
-                    )
-                )
-                current_limit = (
-                    pynvml.nvmlDeviceGetPowerManagementLimit(
-                        handle
-                    )
-                )
+                default_limit = pynvml.nvmlDeviceGetPowerManagementDefaultLimit(handle)
+                current_limit = pynvml.nvmlDeviceGetPowerManagementLimit(handle)
                 if current_limit != default_limit:
-                    pynvml.nvmlDeviceSetPowerManagementLimit(
-                        handle, default_limit
-                    )
+                    pynvml.nvmlDeviceSetPowerManagementLimit(handle, default_limit)
                     return {
                         "power_reset": "success",
                         "previous_limit_mw": current_limit,
@@ -118,9 +106,7 @@ def _check_pending_retirement(gpu_index: int) -> dict:
         try:
             handle = pynvml.nvmlDeviceGetHandleByIndex(gpu_index)
             try:
-                pending = pynvml.nvmlDeviceGetRetiredPagesPendingStatus(
-                    handle
-                )
+                pending = pynvml.nvmlDeviceGetRetiredPagesPendingStatus(handle)
                 return {
                     "pending_retirement": bool(pending),
                     "reboot_needed": bool(pending),
@@ -151,20 +137,14 @@ def cleanup_gpu(gpu: GPUInfo) -> TestResult:
     actions.update(_check_pending_retirement(gpu.index))
 
     # Determine if any cleanup action failed
-    errors = [
-        v for k, v in actions.items()
-        if isinstance(v, str) and v.startswith("error:")
-    ]
+    errors = [v for k, v in actions.items() if isinstance(v, str) and v.startswith("error:")]
 
     if errors:
         return TestResult(
             test_name="cleanup.gpu_reset",
             status=TestStatus.WARN,
             duration_seconds=time.time() - start,
-            message=(
-                f"GPU {gpu.index} cleanup partial: "
-                f"{len(errors)} action(s) had errors"
-            ),
+            message=(f"GPU {gpu.index} cleanup partial: {len(errors)} action(s) had errors"),
             gpu_uuid=gpu.uuid,
             details=actions,
         )
@@ -175,10 +155,7 @@ def cleanup_gpu(gpu: GPUInfo) -> TestResult:
             test_name="cleanup.gpu_reset",
             status=TestStatus.WARN,
             duration_seconds=time.time() - start,
-            message=(
-                f"GPU {gpu.index} cleanup done — "
-                f"reboot needed for page retirement"
-            ),
+            message=(f"GPU {gpu.index} cleanup done — reboot needed for page retirement"),
             gpu_uuid=gpu.uuid,
             details=actions,
         )

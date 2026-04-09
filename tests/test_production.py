@@ -58,8 +58,8 @@ class TestJUnitXML:
     def test_basic_xml_output(self):
         results = _make_results()
         xml_str = results_to_junit_xml(results)
-        assert '<?xml' in xml_str
-        assert 'testsuite' in xml_str
+        assert "<?xml" in xml_str
+        assert "testsuite" in xml_str
         assert 'tests="5"' in xml_str
 
     def test_failure_count(self):
@@ -78,12 +78,14 @@ class TestJUnitXML:
         assert 'skipped="1"' in xml_str
 
     def test_pass_has_no_children(self):
-        results = [TestResult(
-            test_name="test.pass",
-            status=TestStatus.PASS,
-            duration_seconds=0.01,
-            message="OK",
-        )]
+        results = [
+            TestResult(
+                test_name="test.pass",
+                status=TestStatus.PASS,
+                duration_seconds=0.01,
+                message="OK",
+            )
+        ]
         xml_str = results_to_junit_xml(results)
         root = ET.fromstring(xml_str)
         tc = root.find(".//testcase")
@@ -94,13 +96,15 @@ class TestJUnitXML:
         assert tc.find("skipped") is None
 
     def test_fail_has_failure_element(self):
-        results = [TestResult(
-            test_name="test.fail",
-            status=TestStatus.FAIL,
-            duration_seconds=0.01,
-            message="Failed check",
-            failure_code="DIAG-001",
-        )]
+        results = [
+            TestResult(
+                test_name="test.fail",
+                status=TestStatus.FAIL,
+                duration_seconds=0.01,
+                message="Failed check",
+                failure_code="DIAG-001",
+            )
+        ]
         xml_str = results_to_junit_xml(results)
         root = ET.fromstring(xml_str)
         failure = root.find(".//failure")
@@ -108,12 +112,14 @@ class TestJUnitXML:
         assert failure.get("message") == "Failed check"
 
     def test_warn_uses_system_out(self):
-        results = [TestResult(
-            test_name="test.warn",
-            status=TestStatus.WARN,
-            duration_seconds=0.01,
-            message="Warning message",
-        )]
+        results = [
+            TestResult(
+                test_name="test.warn",
+                status=TestStatus.WARN,
+                duration_seconds=0.01,
+                message="Warning message",
+            )
+        ]
         xml_str = results_to_junit_xml(results)
         root = ET.fromstring(xml_str)
         sysout = root.find(".//system-out")
@@ -121,13 +127,15 @@ class TestJUnitXML:
         assert "WARNING" in sysout.text
 
     def test_gpu_uuid_as_property(self):
-        results = [TestResult(
-            test_name="test.gpu",
-            status=TestStatus.PASS,
-            duration_seconds=0.01,
-            message="OK",
-            gpu_uuid="GPU-1234",
-        )]
+        results = [
+            TestResult(
+                test_name="test.gpu",
+                status=TestStatus.PASS,
+                duration_seconds=0.01,
+                message="OK",
+                gpu_uuid="GPU-1234",
+            )
+        ]
         xml_str = results_to_junit_xml(results)
         root = ET.fromstring(xml_str)
         prop = root.find(".//property[@name='gpu_uuid']")
@@ -140,12 +148,13 @@ class TestJUnitXML:
         write_junit_xml(results, str(output))
         assert output.exists()
         content = output.read_text()
-        assert 'testsuite' in content
+        assert "testsuite" in content
 
     def test_suite_name_custom(self):
         results = _make_results()
         xml_str = results_to_junit_xml(
-            results, suite_name="my_suite",
+            results,
+            suite_name="my_suite",
         )
         assert 'name="my_suite"' in xml_str
 
@@ -181,12 +190,14 @@ class TestPrometheus:
 
     def test_metrics_store_test_results(self):
         store = MetricsStore()
-        results = [TestResult(
-            test_name="health.temp",
-            status=TestStatus.PASS,
-            duration_seconds=0.01,
-            message="OK",
-        )]
+        results = [
+            TestResult(
+                test_name="health.temp",
+                status=TestStatus.PASS,
+                duration_seconds=0.01,
+                message="OK",
+            )
+        ]
         store.update_test_results(results)
         output = store.format_prometheus()
         assert "gpu_diagnostic_status" in output
@@ -195,12 +206,14 @@ class TestPrometheus:
 
     def test_metrics_store_fail_status(self):
         store = MetricsStore()
-        results = [TestResult(
-            test_name="health.fail",
-            status=TestStatus.FAIL,
-            duration_seconds=0.01,
-            message="Failed",
-        )]
+        results = [
+            TestResult(
+                test_name="health.fail",
+                status=TestStatus.FAIL,
+                duration_seconds=0.01,
+                message="Failed",
+            )
+        ]
         store.update_test_results(results)
         output = store.format_prometheus()
         # prometheus_client includes all labels in definition order
@@ -230,7 +243,11 @@ class TestGPUCleanup:
     @patch("src.diagnostics.gpu_cleanup._reset_gpu_clocks")
     @patch("src.diagnostics.gpu_cleanup._cleanup_cuda_context")
     def test_cleanup_success(
-        self, mock_cuda, mock_clocks, mock_power, mock_retire,
+        self,
+        mock_cuda,
+        mock_clocks,
+        mock_power,
+        mock_retire,
     ):
         mock_cuda.return_value = {"cuda_cleanup": "success"}
         mock_clocks.return_value = {"clock_reset": "success"}
@@ -249,7 +266,11 @@ class TestGPUCleanup:
     @patch("src.diagnostics.gpu_cleanup._reset_gpu_clocks")
     @patch("src.diagnostics.gpu_cleanup._cleanup_cuda_context")
     def test_cleanup_with_errors(
-        self, mock_cuda, mock_clocks, mock_power, mock_retire,
+        self,
+        mock_cuda,
+        mock_clocks,
+        mock_power,
+        mock_retire,
     ):
         mock_cuda.return_value = {
             "cuda_cleanup": "error: no device",
@@ -269,7 +290,11 @@ class TestGPUCleanup:
     @patch("src.diagnostics.gpu_cleanup._reset_gpu_clocks")
     @patch("src.diagnostics.gpu_cleanup._cleanup_cuda_context")
     def test_cleanup_reboot_needed(
-        self, mock_cuda, mock_clocks, mock_power, mock_retire,
+        self,
+        mock_cuda,
+        mock_clocks,
+        mock_power,
+        mock_retire,
     ):
         mock_cuda.return_value = {"cuda_cleanup": "success"}
         mock_clocks.return_value = {"clock_reset": "success"}
@@ -289,7 +314,11 @@ class TestGPUCleanup:
     @patch("src.diagnostics.gpu_cleanup._reset_gpu_clocks")
     @patch("src.diagnostics.gpu_cleanup._cleanup_cuda_context")
     def test_run_cleanup_multi_gpu(
-        self, mock_cuda, mock_clocks, mock_power, mock_retire,
+        self,
+        mock_cuda,
+        mock_clocks,
+        mock_power,
+        mock_retire,
     ):
         mock_cuda.return_value = {"cuda_cleanup": "success"}
         mock_clocks.return_value = {"clock_reset": "success"}
@@ -300,7 +329,8 @@ class TestGPUCleanup:
             "pending_retirement": False,
         }
         results = run_cleanup(
-            [MOCK_GPU_INFO, MOCK_GPU_INFO], {},
+            [MOCK_GPU_INFO, MOCK_GPU_INFO],
+            {},
         )
         assert len(results) == 2
 

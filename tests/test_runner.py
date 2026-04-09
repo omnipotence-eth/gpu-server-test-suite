@@ -11,18 +11,34 @@ class TestRunnerRegistration:
 
     @patch("src.diagnostics.deployment.pynvml")
     def test_all_tests_registered(
-        self, mock_nvml, mock_gpu_info, mock_config, mock_profile,
+        self,
+        mock_nvml,
+        mock_gpu_info,
+        mock_config,
+        mock_profile,
     ):
         mock_nvml.NVMLError = Exception
         runner = TestRunner(
-            [mock_gpu_info], mock_config, mock_profile,
+            [mock_gpu_info],
+            mock_config,
+            mock_profile,
         )
         expected = [
-            "deployment", "gpu_health", "pcie_validation",
-            "memory_test", "pcie_bandwidth", "memory_bandwidth",
-            "compute_stress", "sm_stress", "power_test",
-            "xid_errors", "clock_throttle", "ecc_health",
-            "nvlink_p2p", "nccl_validation", "topology_map",
+            "deployment",
+            "gpu_health",
+            "pcie_validation",
+            "memory_test",
+            "pcie_bandwidth",
+            "memory_bandwidth",
+            "compute_stress",
+            "sm_stress",
+            "power_test",
+            "xid_errors",
+            "clock_throttle",
+            "ecc_health",
+            "nvlink_p2p",
+            "nccl_validation",
+            "topology_map",
             "cleanup",
         ]
         for test_name in expected:
@@ -30,11 +46,17 @@ class TestRunnerRegistration:
 
     @patch("src.diagnostics.deployment.pynvml")
     def test_available_tests_count(
-        self, mock_nvml, mock_gpu_info, mock_config, mock_profile,
+        self,
+        mock_nvml,
+        mock_gpu_info,
+        mock_config,
+        mock_profile,
     ):
         mock_nvml.NVMLError = Exception
         runner = TestRunner(
-            [mock_gpu_info], mock_config, mock_profile,
+            [mock_gpu_info],
+            mock_config,
+            mock_profile,
         )
         # 9 original + 6 new + 1 cleanup = 16
         assert len(runner.available_tests) == 16
@@ -45,22 +67,34 @@ class TestRunnerLevels:
 
     @patch("src.diagnostics.deployment.pynvml")
     def test_quick_level_tests(
-        self, mock_nvml, mock_gpu_info, mock_config, mock_profile,
+        self,
+        mock_nvml,
+        mock_gpu_info,
+        mock_config,
+        mock_profile,
     ):
         mock_nvml.NVMLError = Exception
         runner = TestRunner(
-            [mock_gpu_info], mock_config, mock_profile,
+            [mock_gpu_info],
+            mock_config,
+            mock_profile,
         )
         tests = runner.get_tests_for_level("quick")
         assert tests == ["deployment"]
 
     @patch("src.diagnostics.deployment.pynvml")
     def test_medium_level_tests(
-        self, mock_nvml, mock_gpu_info, mock_config, mock_profile,
+        self,
+        mock_nvml,
+        mock_gpu_info,
+        mock_config,
+        mock_profile,
     ):
         mock_nvml.NVMLError = Exception
         runner = TestRunner(
-            [mock_gpu_info], mock_config, mock_profile,
+            [mock_gpu_info],
+            mock_config,
+            mock_profile,
         )
         tests = runner.get_tests_for_level("medium")
         assert "deployment" in tests
@@ -72,11 +106,17 @@ class TestRunnerLevels:
 
     @patch("src.diagnostics.deployment.pynvml")
     def test_long_level_includes_interconnect(
-        self, mock_nvml, mock_gpu_info, mock_config, mock_profile,
+        self,
+        mock_nvml,
+        mock_gpu_info,
+        mock_config,
+        mock_profile,
     ):
         mock_nvml.NVMLError = Exception
         runner = TestRunner(
-            [mock_gpu_info], mock_config, mock_profile,
+            [mock_gpu_info],
+            mock_config,
+            mock_profile,
         )
         tests = runner.get_tests_for_level("long")
         assert "topology_map" in tests
@@ -84,11 +124,17 @@ class TestRunnerLevels:
 
     @patch("src.diagnostics.deployment.pynvml")
     def test_unknown_level_empty(
-        self, mock_nvml, mock_gpu_info, mock_config, mock_profile,
+        self,
+        mock_nvml,
+        mock_gpu_info,
+        mock_config,
+        mock_profile,
     ):
         mock_nvml.NVMLError = Exception
         runner = TestRunner(
-            [mock_gpu_info], mock_config, mock_profile,
+            [mock_gpu_info],
+            mock_config,
+            mock_profile,
         )
         tests = runner.get_tests_for_level("nonexistent")
         assert tests == []
@@ -99,11 +145,17 @@ class TestRunnerExecution:
 
     @patch("src.diagnostics.deployment.pynvml")
     def test_unregistered_test_skips(
-        self, mock_nvml, mock_gpu_info, mock_config, mock_profile,
+        self,
+        mock_nvml,
+        mock_gpu_info,
+        mock_config,
+        mock_profile,
     ):
         mock_nvml.NVMLError = Exception
         runner = TestRunner(
-            [mock_gpu_info], mock_config, mock_profile,
+            [mock_gpu_info],
+            mock_config,
+            mock_profile,
         )
         results = runner.run_single_test("nonexistent_test")
         assert len(results) == 1
@@ -111,7 +163,11 @@ class TestRunnerExecution:
 
     @patch("src.diagnostics.deployment.pynvml")
     def test_run_level_returns_diagnostic_run(
-        self, mock_nvml, mock_gpu_info, mock_config, mock_profile,
+        self,
+        mock_nvml,
+        mock_gpu_info,
+        mock_config,
+        mock_profile,
     ):
         mock_nvml.NVMLError = Exception
         mock_nvml.nvmlInit.return_value = None
@@ -124,7 +180,9 @@ class TestRunnerExecution:
         mock_nvml.NVML_FEATURE_ENABLED = 1
 
         runner = TestRunner(
-            [mock_gpu_info], mock_config, mock_profile,
+            [mock_gpu_info],
+            mock_config,
+            mock_profile,
         )
         run = runner.run_level("quick")
 
@@ -136,7 +194,11 @@ class TestRunnerExecution:
 
     @patch("src.diagnostics.deployment.pynvml")
     def test_run_level_overall_status(
-        self, mock_nvml, mock_gpu_info, mock_config, mock_profile,
+        self,
+        mock_nvml,
+        mock_gpu_info,
+        mock_config,
+        mock_profile,
     ):
         mock_nvml.NVMLError = Exception
         mock_nvml.nvmlInit.return_value = None
@@ -149,11 +211,14 @@ class TestRunnerExecution:
         mock_nvml.NVML_FEATURE_ENABLED = 1
 
         runner = TestRunner(
-            [mock_gpu_info], mock_config, mock_profile,
+            [mock_gpu_info],
+            mock_config,
+            mock_profile,
         )
         run = runner.run_level("quick")
         assert run.overall_status in (
-            TestStatus.PASS, TestStatus.WARN,
+            TestStatus.PASS,
+            TestStatus.WARN,
         )
 
 
@@ -162,7 +227,11 @@ class TestRunnerPreflight:
 
     @patch("src.diagnostics.deployment.pynvml")
     def test_preflight_runs_health_first(
-        self, mock_nvml, mock_gpu_info, mock_config, mock_profile,
+        self,
+        mock_nvml,
+        mock_gpu_info,
+        mock_config,
+        mock_profile,
     ):
         mock_nvml.NVMLError = Exception
         mock_nvml.nvmlInit.return_value = None
@@ -175,19 +244,22 @@ class TestRunnerPreflight:
         mock_nvml.NVML_FEATURE_ENABLED = 1
 
         runner = TestRunner(
-            [mock_gpu_info], mock_config, mock_profile,
+            [mock_gpu_info],
+            mock_config,
+            mock_profile,
         )
         run = runner.run_with_preflight("quick")
 
-        health_results = [
-            r for r in run.results
-            if r.test_name.startswith("health.")
-        ]
+        health_results = [r for r in run.results if r.test_name.startswith("health.")]
         assert len(health_results) >= 1
 
     @patch("src.diagnostics.deployment.pynvml")
     def test_preflight_gpu_info(
-        self, mock_nvml, mock_gpu_info, mock_config, mock_profile,
+        self,
+        mock_nvml,
+        mock_gpu_info,
+        mock_config,
+        mock_profile,
     ):
         mock_nvml.NVMLError = Exception
         mock_nvml.nvmlInit.return_value = None
@@ -200,7 +272,9 @@ class TestRunnerPreflight:
         mock_nvml.NVML_FEATURE_ENABLED = 1
 
         runner = TestRunner(
-            [mock_gpu_info], mock_config, mock_profile,
+            [mock_gpu_info],
+            mock_config,
+            mock_profile,
         )
         run = runner.run_with_preflight("quick")
 
@@ -213,7 +287,11 @@ class TestRunnerCleanup:
 
     @patch("src.diagnostics.deployment.pynvml")
     def test_run_with_cleanup(
-        self, mock_nvml, mock_gpu_info, mock_config, mock_profile,
+        self,
+        mock_nvml,
+        mock_gpu_info,
+        mock_config,
+        mock_profile,
     ):
         mock_nvml.NVMLError = Exception
         mock_nvml.nvmlInit.return_value = None
@@ -226,12 +304,11 @@ class TestRunnerCleanup:
         mock_nvml.NVML_FEATURE_ENABLED = 1
 
         runner = TestRunner(
-            [mock_gpu_info], mock_config, mock_profile,
+            [mock_gpu_info],
+            mock_config,
+            mock_profile,
         )
         run = runner.run_with_cleanup("quick")
 
-        cleanup_results = [
-            r for r in run.results
-            if r.test_name.startswith("cleanup.")
-        ]
+        cleanup_results = [r for r in run.results if r.test_name.startswith("cleanup.")]
         assert len(cleanup_results) >= 1

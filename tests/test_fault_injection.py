@@ -55,9 +55,19 @@ class TestFaultCodeIntegrity:
         assert len(codes) == len(set(codes)), "Duplicate failure codes across fault types"
 
     def test_codes_do_not_collide_with_real_diag_codes(self):
-        real_prefixes = {"DIAG-001", "DIAG-002", "DIAG-003", "DIAG-004",
-                         "DIAG-100", "DIAG-200", "DIAG-300", "DIAG-400",
-                         "DIAG-401", "DIAG-500", "DIAG-600"}
+        real_prefixes = {
+            "DIAG-001",
+            "DIAG-002",
+            "DIAG-003",
+            "DIAG-004",
+            "DIAG-100",
+            "DIAG-200",
+            "DIAG-300",
+            "DIAG-400",
+            "DIAG-401",
+            "DIAG-500",
+            "DIAG-600",
+        }
         for fault_type in SUPPORTED_FAULTS:
             code = inject_fault(fault_type).failure_code
             assert code not in real_prefixes, (

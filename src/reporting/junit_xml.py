@@ -31,30 +31,45 @@ def _result_to_testcase(result: TestResult) -> ET.Element:
         classname = "gpu_diagnostics"
         name = result.test_name
 
-    tc = ET.Element("testcase", {
-        "classname": classname,
-        "name": name,
-        "time": f"{result.duration_seconds:.3f}",
-    })
+    tc = ET.Element(
+        "testcase",
+        {
+            "classname": classname,
+            "name": name,
+            "time": f"{result.duration_seconds:.3f}",
+        },
+    )
 
     if result.status == TestStatus.FAIL:
-        failure = ET.SubElement(tc, "failure", {
-            "message": result.message,
-            "type": result.failure_code or "AssertionError",
-        })
+        failure = ET.SubElement(
+            tc,
+            "failure",
+            {
+                "message": result.message,
+                "type": result.failure_code or "AssertionError",
+            },
+        )
         failure.text = _format_details(result)
 
     elif result.status == TestStatus.ERROR:
-        error = ET.SubElement(tc, "error", {
-            "message": result.message,
-            "type": result.failure_code or "RuntimeError",
-        })
+        error = ET.SubElement(
+            tc,
+            "error",
+            {
+                "message": result.message,
+                "type": result.failure_code or "RuntimeError",
+            },
+        )
         error.text = _format_details(result)
 
     elif result.status == TestStatus.SKIP:
-        ET.SubElement(tc, "skipped", {
-            "message": result.message,
-        })
+        ET.SubElement(
+            tc,
+            "skipped",
+            {
+                "message": result.message,
+            },
+        )
 
     elif result.status == TestStatus.WARN:
         # JUnit has no WARN — use system-out for visibility
@@ -64,10 +79,14 @@ def _result_to_testcase(result: TestResult) -> ET.Element:
     # Add GPU UUID as property if present
     if result.gpu_uuid:
         props = ET.SubElement(tc, "properties")
-        ET.SubElement(props, "property", {
-            "name": "gpu_uuid",
-            "value": result.gpu_uuid,
-        })
+        ET.SubElement(
+            props,
+            "property",
+            {
+                "name": "gpu_uuid",
+                "value": result.gpu_uuid,
+            },
+        )
 
     return tc
 
@@ -107,26 +126,23 @@ def results_to_junit_xml(
     """
     # Compute summary counts
     tests = len(results)
-    failures = sum(
-        1 for r in results if r.status == TestStatus.FAIL
-    )
-    errors = sum(
-        1 for r in results if r.status == TestStatus.ERROR
-    )
-    skipped = sum(
-        1 for r in results if r.status == TestStatus.SKIP
-    )
+    failures = sum(1 for r in results if r.status == TestStatus.FAIL)
+    errors = sum(1 for r in results if r.status == TestStatus.ERROR)
+    skipped = sum(1 for r in results if r.status == TestStatus.SKIP)
     total_time = sum(r.duration_seconds for r in results)
 
     # Build XML
-    suite = ET.Element("testsuite", {
-        "name": suite_name,
-        "tests": str(tests),
-        "failures": str(failures),
-        "errors": str(errors),
-        "skipped": str(skipped),
-        "time": f"{total_time:.3f}",
-    })
+    suite = ET.Element(
+        "testsuite",
+        {
+            "name": suite_name,
+            "tests": str(tests),
+            "failures": str(failures),
+            "errors": str(errors),
+            "skipped": str(skipped),
+            "time": f"{total_time:.3f}",
+        },
+    )
 
     if run_id:
         suite.set("id", run_id)

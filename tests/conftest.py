@@ -115,7 +115,7 @@ MOCK_GPU_INFO_DEGRADED = GPUInfo(
     clock_graphics_max_mhz=2632,
     clock_memory_mhz=1188,
     clock_memory_max_mhz=1500,
-    pcie_link_gen_current=3,   # Degraded: Gen3 instead of Gen4
+    pcie_link_gen_current=3,  # Degraded: Gen3 instead of Gen4
     pcie_link_gen_max=4,
     pcie_link_width_current=8,  # Degraded: x8 instead of x16
     pcie_link_width_max=16,
@@ -282,37 +282,19 @@ def mock_pynvml():
         mock_nvml.nvmlInit.return_value = None
         mock_nvml.nvmlShutdown.return_value = None
         mock_nvml.nvmlDeviceGetCount.return_value = 1
-        mock_nvml.nvmlDeviceGetHandleByIndex.return_value = (
-            mock_handle
-        )
-        mock_nvml.nvmlDeviceGetName.return_value = (
-            "NVIDIA GeForce RTX 5070 Ti"
-        )
-        mock_nvml.nvmlDeviceGetUUID.return_value = (
-            "GPU-12345678-abcd-efgh-ijkl-123456789012"
-        )
+        mock_nvml.nvmlDeviceGetHandleByIndex.return_value = mock_handle
+        mock_nvml.nvmlDeviceGetName.return_value = "NVIDIA GeForce RTX 5070 Ti"
+        mock_nvml.nvmlDeviceGetUUID.return_value = "GPU-12345678-abcd-efgh-ijkl-123456789012"
         mock_nvml.nvmlDeviceGetSerial.return_value = "N/A"
         mock_nvml.nvmlSystemGetDriverVersion.return_value = "572.16"
-        mock_nvml.nvmlSystemGetCudaDriverVersion_v2.return_value = (
-            12080
-        )
-        mock_nvml.nvmlDeviceGetMemoryInfo.return_value = (
-            MockMemInfo()
-        )
-        mock_nvml.nvmlDeviceGetEccMode.side_effect = (
-            mock_nvml.NVMLError("Not supported")
-        )
+        mock_nvml.nvmlSystemGetCudaDriverVersion_v2.return_value = 12080
+        mock_nvml.nvmlDeviceGetMemoryInfo.return_value = MockMemInfo()
+        mock_nvml.nvmlDeviceGetEccMode.side_effect = mock_nvml.NVMLError("Not supported")
         mock_nvml.nvmlDeviceGetTemperature.return_value = 42
         mock_nvml.nvmlDeviceGetPowerUsage.return_value = 35000
-        mock_nvml.nvmlDeviceGetPowerManagementLimit.return_value = (
-            300000
-        )
-        mock_nvml.nvmlDeviceGetPowerManagementDefaultLimit.return_value = (
-            300000
-        )
-        mock_nvml.nvmlDeviceGetCudaComputeCapability.return_value = (
-            (12, 0)
-        )
+        mock_nvml.nvmlDeviceGetPowerManagementLimit.return_value = 300000
+        mock_nvml.nvmlDeviceGetPowerManagementDefaultLimit.return_value = 300000
+        mock_nvml.nvmlDeviceGetCudaComputeCapability.return_value = (12, 0)
         mock_nvml.nvmlDeviceGetPerformanceState.return_value = 8
         mock_nvml.nvmlDeviceGetClockInfo.return_value = 210
         mock_nvml.nvmlDeviceGetMaxClockInfo.return_value = 2632

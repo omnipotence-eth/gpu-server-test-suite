@@ -31,12 +31,14 @@ def _check_pcie_gen(
     mismatches = []
     for pcie in pcie_infos:
         if pcie.link_gen_max < expected_gen:
-            mismatches.append({
-                "gpu_index": pcie.gpu_index,
-                "current_gen": pcie.link_gen_current,
-                "max_gen": pcie.link_gen_max,
-                "expected_gen": expected_gen,
-            })
+            mismatches.append(
+                {
+                    "gpu_index": pcie.gpu_index,
+                    "current_gen": pcie.link_gen_current,
+                    "max_gen": pcie.link_gen_max,
+                    "expected_gen": expected_gen,
+                }
+            )
 
     details = {
         "expected_gen": expected_gen,
@@ -56,7 +58,7 @@ def _check_pcie_gen(
             status=TestStatus.FAIL,
             duration_seconds=time.time() - start,
             message=f"PCIe gen capability degraded on {len(mismatches)} "
-                    f"GPU(s): expected Gen{expected_gen}",
+            f"GPU(s): expected Gen{expected_gen}",
             failure_code="DIAG-200",
             details={**details, "mismatches": mismatches},
         )
@@ -78,12 +80,14 @@ def _check_pcie_width(
     mismatches = []
     for pcie in pcie_infos:
         if pcie.link_width_current < expected_width:
-            mismatches.append({
-                "gpu_index": pcie.gpu_index,
-                "current_width": pcie.link_width_current,
-                "max_width": pcie.link_width_max,
-                "expected_width": expected_width,
-            })
+            mismatches.append(
+                {
+                    "gpu_index": pcie.gpu_index,
+                    "current_width": pcie.link_width_current,
+                    "max_width": pcie.link_width_max,
+                    "expected_width": expected_width,
+                }
+            )
 
     details = {
         "expected_width": expected_width,
@@ -102,8 +106,7 @@ def _check_pcie_width(
             test_name="pcie_validation.link_width",
             status=TestStatus.FAIL,
             duration_seconds=time.time() - start,
-            message=f"PCIe width degraded on {len(mismatches)} GPU(s): "
-                    f"expected x{expected_width}",
+            message=f"PCIe width degraded on {len(mismatches)} GPU(s): expected x{expected_width}",
             failure_code="DIAG-201",
             details={**details, "mismatches": mismatches},
         )
@@ -125,17 +128,18 @@ def _check_pcie_replay(
     issues = []
     for pcie in pcie_infos:
         if pcie.replay_counter > max_replays:
-            issues.append({
-                "gpu_index": pcie.gpu_index,
-                "replay_counter": pcie.replay_counter,
-                "threshold": max_replays,
-            })
+            issues.append(
+                {
+                    "gpu_index": pcie.gpu_index,
+                    "replay_counter": pcie.replay_counter,
+                    "threshold": max_replays,
+                }
+            )
 
     details = {
         "threshold": max_replays,
         "gpu_results": [
-            {"gpu_index": p.gpu_index, "replay_counter": p.replay_counter}
-            for p in pcie_infos
+            {"gpu_index": p.gpu_index, "replay_counter": p.replay_counter} for p in pcie_infos
         ],
     }
 

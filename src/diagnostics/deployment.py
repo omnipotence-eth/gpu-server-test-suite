@@ -123,19 +123,13 @@ def _check_ecc_mode(gpu_infos: list[GPUInfo], profile: dict[str, Any]) -> TestRe
     results = []
     for gpu in gpu_infos:
         if not ecc_supported:
-            results.append(
-                {"index": gpu.index, "ecc_mode": gpu.ecc_mode, "status": "SKIP"}
-            )
+            results.append({"index": gpu.index, "ecc_mode": gpu.ecc_mode, "status": "SKIP"})
         elif ecc_expected is not None:
             expected_str = "enabled" if ecc_expected else "disabled"
             if gpu.ecc_mode == expected_str:
-                results.append(
-                    {"index": gpu.index, "ecc_mode": gpu.ecc_mode, "status": "PASS"}
-                )
+                results.append({"index": gpu.index, "ecc_mode": gpu.ecc_mode, "status": "PASS"})
             else:
-                results.append(
-                    {"index": gpu.index, "ecc_mode": gpu.ecc_mode, "status": "FAIL"}
-                )
+                results.append({"index": gpu.index, "ecc_mode": gpu.ecc_mode, "status": "FAIL"})
 
     if not ecc_supported:
         return TestResult(
@@ -177,8 +171,7 @@ def _check_gpu_processes(gpu_infos: list[GPUInfo]) -> TestResult:
         try:
             procs = pynvml.nvmlDeviceGetComputeRunningProcesses(handle)
             heavy = [
-                p for p in procs
-                if (p.usedGpuMemory or 0) > COMPUTE_VRAM_THRESHOLD_MB * 1024 * 1024
+                p for p in procs if (p.usedGpuMemory or 0) > COMPUTE_VRAM_THRESHOLD_MB * 1024 * 1024
             ]
             if heavy:
                 busy_gpus.append(

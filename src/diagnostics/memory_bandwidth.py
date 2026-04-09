@@ -81,7 +81,7 @@ def _measure_memory_bandwidth(
             b.copy_(a)
             torch.cuda.synchronize(device)
             t1 = time.perf_counter()
-            total_time += (t1 - t0)
+            total_time += t1 - t0
 
         avg_time = total_time / iterations
         bandwidth_gibs = (2 * data_bytes / (1024**3)) / avg_time
@@ -103,8 +103,7 @@ def _measure_memory_bandwidth(
                 test_name="memory_bandwidth.stream_copy",
                 status=TestStatus.FAIL,
                 duration_seconds=time.time() - start,
-                message=f"Memory bandwidth low: {bandwidth_gibs:.1f} GiB/s "
-                        f"(min: {min_gibs} GiB/s)",
+                message=f"Memory bandwidth low: {bandwidth_gibs:.1f} GiB/s (min: {min_gibs} GiB/s)",
                 failure_code="DIAG-500",
                 gpu_uuid=gpu.uuid,
                 details=details,
@@ -113,8 +112,7 @@ def _measure_memory_bandwidth(
             test_name="memory_bandwidth.stream_copy",
             status=TestStatus.PASS,
             duration_seconds=time.time() - start,
-            message=f"Memory bandwidth OK: {bandwidth_gibs:.1f} GiB/s "
-                    f"(min: {min_gibs} GiB/s)",
+            message=f"Memory bandwidth OK: {bandwidth_gibs:.1f} GiB/s (min: {min_gibs} GiB/s)",
             gpu_uuid=gpu.uuid,
             details=details,
         )
@@ -189,7 +187,7 @@ def _measure_memory_bandwidth_triad(
             torch.add(b, c, alpha=scalar, out=a)
             torch.cuda.synchronize(device)
             t1 = time.perf_counter()
-            total_time += (t1 - t0)
+            total_time += t1 - t0
 
         avg_time = total_time / iterations
         bandwidth_gibs = (3 * data_bytes / (1024**3)) / avg_time
@@ -212,7 +210,7 @@ def _measure_memory_bandwidth_triad(
                 status=TestStatus.FAIL,
                 duration_seconds=time.time() - start,
                 message=f"Memory triad bandwidth low: {bandwidth_gibs:.1f} GiB/s "
-                        f"(min: {min_gibs} GiB/s)",
+                f"(min: {min_gibs} GiB/s)",
                 failure_code="DIAG-501",
                 gpu_uuid=gpu.uuid,
                 details=details,
@@ -222,7 +220,7 @@ def _measure_memory_bandwidth_triad(
             status=TestStatus.PASS,
             duration_seconds=time.time() - start,
             message=f"Memory triad bandwidth OK: {bandwidth_gibs:.1f} GiB/s "
-                    f"(min: {min_gibs} GiB/s)",
+            f"(min: {min_gibs} GiB/s)",
             gpu_uuid=gpu.uuid,
             details=details,
         )

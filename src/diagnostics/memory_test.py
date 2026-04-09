@@ -164,9 +164,7 @@ def _check_vram_pattern_test(
 
     for pattern_name, pattern_val in test_patterns:
         try:
-            tensor = torch.full(
-                (num_elements,), pattern_val, dtype=torch.float32, device=device
-            )
+            tensor = torch.full((num_elements,), pattern_val, dtype=torch.float32, device=device)
             readback = tensor.mean().item()
             patterns_tested += 1
 

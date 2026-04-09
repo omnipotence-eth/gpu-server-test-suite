@@ -73,8 +73,5 @@ def inject_fault(fault_type: str) -> TestResult:
         ValueError: If fault_type is not a supported fault type.
     """
     if fault_type not in _FAULT_TEMPLATES:
-        raise ValueError(
-            f"Unknown fault type: {fault_type!r}. "
-            f"Supported: {SUPPORTED_FAULTS}"
-        )
+        raise ValueError(f"Unknown fault type: {fault_type!r}. Supported: {SUPPORTED_FAULTS}")
     return _FAULT_TEMPLATES[fault_type]

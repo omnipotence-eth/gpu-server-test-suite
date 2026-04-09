@@ -115,9 +115,7 @@ def get_gpu_info(index: int = 0) -> GPUInfo:
         power_draw_mw = _safe_query(pynvml.nvmlDeviceGetPowerUsage, handle, default=0)
         power_draw_w = power_draw_mw / 1000.0
 
-        power_limit_mw = _safe_query(
-            pynvml.nvmlDeviceGetPowerManagementLimit, handle, default=0
-        )
+        power_limit_mw = _safe_query(pynvml.nvmlDeviceGetPowerManagementLimit, handle, default=0)
         power_limit_w = power_limit_mw / 1000.0
 
         power_default_mw = _safe_query(
@@ -156,15 +154,9 @@ def get_gpu_info(index: int = 0) -> GPUInfo:
         pcie_gen_current = _safe_query(
             pynvml.nvmlDeviceGetCurrPcieLinkGeneration, handle, default=0
         )
-        pcie_gen_max = _safe_query(
-            pynvml.nvmlDeviceGetMaxPcieLinkGeneration, handle, default=0
-        )
-        pcie_width_current = _safe_query(
-            pynvml.nvmlDeviceGetCurrPcieLinkWidth, handle, default=0
-        )
-        pcie_width_max = _safe_query(
-            pynvml.nvmlDeviceGetMaxPcieLinkWidth, handle, default=0
-        )
+        pcie_gen_max = _safe_query(pynvml.nvmlDeviceGetMaxPcieLinkGeneration, handle, default=0)
+        pcie_width_current = _safe_query(pynvml.nvmlDeviceGetCurrPcieLinkWidth, handle, default=0)
+        pcie_width_max = _safe_query(pynvml.nvmlDeviceGetMaxPcieLinkWidth, handle, default=0)
 
         return GPUInfo(
             index=index,

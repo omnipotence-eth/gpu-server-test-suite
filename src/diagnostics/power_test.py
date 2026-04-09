@@ -98,27 +98,29 @@ def _run_power_stress(
 
                     power_mw = pynvml.nvmlDeviceGetPowerUsage(handle)
                     power_w = power_mw / 1000.0
-                    power_samples.append({
-                        "time_s": round(now - stress_start, 1),
-                        "power_w": round(power_w, 1),
-                    })
-
-                    temp = pynvml.nvmlDeviceGetTemperature(
-                        handle, pynvml.NVML_TEMPERATURE_GPU
+                    power_samples.append(
+                        {
+                            "time_s": round(now - stress_start, 1),
+                            "power_w": round(power_w, 1),
+                        }
                     )
-                    temp_samples.append({
-                        "time_s": round(now - stress_start, 1),
-                        "temp_c": temp,
-                    })
+
+                    temp = pynvml.nvmlDeviceGetTemperature(handle, pynvml.NVML_TEMPERATURE_GPU)
+                    temp_samples.append(
+                        {
+                            "time_s": round(now - stress_start, 1),
+                            "temp_c": temp,
+                        }
+                    )
 
                     try:
-                        clock = pynvml.nvmlDeviceGetClockInfo(
-                            handle, pynvml.NVML_CLOCK_GRAPHICS
+                        clock = pynvml.nvmlDeviceGetClockInfo(handle, pynvml.NVML_CLOCK_GRAPHICS)
+                        clock_samples.append(
+                            {
+                                "time_s": round(now - stress_start, 1),
+                                "clock_mhz": clock,
+                            }
                         )
-                        clock_samples.append({
-                            "time_s": round(now - stress_start, 1),
-                            "clock_mhz": clock,
-                        })
                     except Exception:
                         pass
 
@@ -164,7 +166,7 @@ def _run_power_stress(
                 status=TestStatus.WARN,
                 duration_seconds=time.time() - start,
                 message="Power monitoring not available — stress completed "
-                        f"({iteration_count} iterations, {stress_duration:.1f}s)",
+                f"({iteration_count} iterations, {stress_duration:.1f}s)",
                 gpu_uuid=gpu.uuid,
                 details=details,
             )
@@ -176,8 +178,7 @@ def _run_power_stress(
                 test_name="power_test.sustained_power",
                 status=TestStatus.FAIL,
                 duration_seconds=time.time() - start,
-                message=f"Thermal throttling detected: {max_temp}C "
-                        f"(critical: {temp_critical}C)",
+                message=f"Thermal throttling detected: {max_temp}C (critical: {temp_critical}C)",
                 failure_code="DIAG-801",
                 gpu_uuid=gpu.uuid,
                 details=details,
@@ -189,7 +190,7 @@ def _run_power_stress(
                 status=TestStatus.WARN,
                 duration_seconds=time.time() - start,
                 message=f"Power below target: {avg_power:.0f}W avg "
-                        f"(target: {target_watts:.0f}W, min: {min_watts:.0f}W)",
+                f"(target: {target_watts:.0f}W, min: {min_watts:.0f}W)",
                 gpu_uuid=gpu.uuid,
                 details=details,
             )
@@ -199,7 +200,7 @@ def _run_power_stress(
             status=TestStatus.PASS,
             duration_seconds=time.time() - start,
             message=f"Power test OK: {avg_power:.0f}W avg, "
-                    f"max temp {max_temp}C over {stress_duration:.0f}s",
+            f"max temp {max_temp}C over {stress_duration:.0f}s",
             gpu_uuid=gpu.uuid,
             details=details,
         )

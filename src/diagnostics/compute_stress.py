@@ -96,10 +96,12 @@ def _run_compute_stress(
                             temp = _pynvml.nvmlDeviceGetTemperature(
                                 handle, _pynvml.NVML_TEMPERATURE_GPU
                             )
-                            temp_samples.append({
-                                "time_s": round(now - stress_start, 1),
-                                "temp_c": temp,
-                            })
+                            temp_samples.append(
+                                {
+                                    "time_s": round(now - stress_start, 1),
+                                    "temp_c": temp,
+                                }
+                            )
                             _pynvml.nvmlShutdown()
                         except Exception:
                             pass
@@ -134,7 +136,7 @@ def _run_compute_stress(
                 status=TestStatus.FAIL,
                 duration_seconds=time.time() - start,
                 message=f"Compute stress failed with {len(errors)} error(s) "
-                        f"after {iteration_count} iterations",
+                f"after {iteration_count} iterations",
                 failure_code="DIAG-600",
                 gpu_uuid=gpu.uuid,
                 details=details,
@@ -146,7 +148,7 @@ def _run_compute_stress(
                 status=TestStatus.WARN,
                 duration_seconds=time.time() - start,
                 message=f"Stress test ended early: {stress_duration:.1f}s "
-                        f"of {duration_seconds}s target",
+                f"of {duration_seconds}s target",
                 gpu_uuid=gpu.uuid,
                 details=details,
             )
@@ -156,7 +158,7 @@ def _run_compute_stress(
             status=TestStatus.PASS,
             duration_seconds=time.time() - start,
             message=f"Compute stress OK: {iteration_count} GEMM ops, "
-                    f"{gflops:.0f} GFLOPS over {stress_duration:.1f}s",
+            f"{gflops:.0f} GFLOPS over {stress_duration:.1f}s",
             gpu_uuid=gpu.uuid,
             details=details,
         )

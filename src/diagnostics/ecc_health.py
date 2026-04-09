@@ -30,23 +30,19 @@ def _query_ecc_counters(gpu_index: int) -> dict:
             vol_sbe = 0
             vol_dbe = 0
             try:
-                vol_sbe = (
-                    pynvml.nvmlDeviceGetTotalEccErrors(
-                        handle,
-                        pynvml.NVML_SINGLE_BIT_ECC,
-                        pynvml.NVML_VOLATILE_ECC,
-                    )
+                vol_sbe = pynvml.nvmlDeviceGetTotalEccErrors(
+                    handle,
+                    pynvml.NVML_SINGLE_BIT_ECC,
+                    pynvml.NVML_VOLATILE_ECC,
                 )
             except (pynvml.NVMLError, AttributeError):
                 vol_sbe = -1  # Not supported
 
             try:
-                vol_dbe = (
-                    pynvml.nvmlDeviceGetTotalEccErrors(
-                        handle,
-                        pynvml.NVML_DOUBLE_BIT_ECC,
-                        pynvml.NVML_VOLATILE_ECC,
-                    )
+                vol_dbe = pynvml.nvmlDeviceGetTotalEccErrors(
+                    handle,
+                    pynvml.NVML_DOUBLE_BIT_ECC,
+                    pynvml.NVML_VOLATILE_ECC,
                 )
             except (pynvml.NVMLError, AttributeError):
                 vol_dbe = -1
@@ -55,23 +51,19 @@ def _query_ecc_counters(gpu_index: int) -> dict:
             agg_sbe = 0
             agg_dbe = 0
             try:
-                agg_sbe = (
-                    pynvml.nvmlDeviceGetTotalEccErrors(
-                        handle,
-                        pynvml.NVML_SINGLE_BIT_ECC,
-                        pynvml.NVML_AGGREGATE_ECC,
-                    )
+                agg_sbe = pynvml.nvmlDeviceGetTotalEccErrors(
+                    handle,
+                    pynvml.NVML_SINGLE_BIT_ECC,
+                    pynvml.NVML_AGGREGATE_ECC,
                 )
             except (pynvml.NVMLError, AttributeError):
                 agg_sbe = -1
 
             try:
-                agg_dbe = (
-                    pynvml.nvmlDeviceGetTotalEccErrors(
-                        handle,
-                        pynvml.NVML_DOUBLE_BIT_ECC,
-                        pynvml.NVML_AGGREGATE_ECC,
-                    )
+                agg_dbe = pynvml.nvmlDeviceGetTotalEccErrors(
+                    handle,
+                    pynvml.NVML_DOUBLE_BIT_ECC,
+                    pynvml.NVML_AGGREGATE_ECC,
                 )
             except (pynvml.NVMLError, AttributeError):
                 agg_dbe = -1
@@ -80,11 +72,9 @@ def _query_ecc_counters(gpu_index: int) -> dict:
             retired_sbe = 0
             retired_dbe = 0
             try:
-                retired_sbe = (
-                    pynvml.nvmlDeviceGetRetiredPages(
-                        handle,
-                        pynvml.NVML_PAGE_RETIREMENT_CAUSE_MULTIPLE_SINGLE_BIT_ECC_ERRORS,
-                    )
+                retired_sbe = pynvml.nvmlDeviceGetRetiredPages(
+                    handle,
+                    pynvml.NVML_PAGE_RETIREMENT_CAUSE_MULTIPLE_SINGLE_BIT_ECC_ERRORS,
                 )
                 if isinstance(retired_sbe, (list, tuple)):
                     retired_sbe = len(retired_sbe)
@@ -92,11 +82,9 @@ def _query_ecc_counters(gpu_index: int) -> dict:
                 retired_sbe = -1
 
             try:
-                retired_dbe = (
-                    pynvml.nvmlDeviceGetRetiredPages(
-                        handle,
-                        pynvml.NVML_PAGE_RETIREMENT_CAUSE_DOUBLE_BIT_ECC_ERROR,
-                    )
+                retired_dbe = pynvml.nvmlDeviceGetRetiredPages(
+                    handle,
+                    pynvml.NVML_PAGE_RETIREMENT_CAUSE_DOUBLE_BIT_ECC_ERROR,
                 )
                 if isinstance(retired_dbe, (list, tuple)):
                     retired_dbe = len(retired_dbe)
@@ -106,9 +94,7 @@ def _query_ecc_counters(gpu_index: int) -> dict:
             # Pending retired pages
             pending_retirement = False
             try:
-                pending = (
-                    pynvml.nvmlDeviceGetRetiredPages_v2(handle)
-                )
+                pending = pynvml.nvmlDeviceGetRetiredPages_v2(handle)
                 if pending:
                     pending_retirement = True
             except (pynvml.NVMLError, AttributeError):
@@ -118,9 +104,7 @@ def _query_ecc_counters(gpu_index: int) -> dict:
             remapped_rows = {}
             try:
                 remapped = pynvml.nvmlDeviceGetRemappedRows(handle)
-                correctable, uncorrectable, pending_remap, failure = (
-                    remapped
-                )
+                correctable, uncorrectable, pending_remap, failure = remapped
                 remapped_rows = {
                     "correctable": correctable,
                     "uncorrectable": uncorrectable,
@@ -168,10 +152,7 @@ def _check_ecc_health(
                 test_name="telemetry.ecc_health",
                 status=TestStatus.SKIP,
                 duration_seconds=time.time() - start,
-                message=(
-                    "ECC not supported on this GPU "
-                    f"({gpu.name})"
-                ),
+                message=(f"ECC not supported on this GPU ({gpu.name})"),
                 gpu_uuid=gpu.uuid,
                 details={"ecc_mode": gpu.ecc_mode},
             )
@@ -183,10 +164,7 @@ def _check_ecc_health(
             test_name="telemetry.ecc_health",
             status=TestStatus.SKIP,
             duration_seconds=time.time() - start,
-            message=(
-                f"ECC query failed: "
-                f"{counters.get('error', 'unknown')}"
-            ),
+            message=(f"ECC query failed: {counters.get('error', 'unknown')}"),
             gpu_uuid=gpu.uuid,
             details=counters,
         )
@@ -256,9 +234,7 @@ def _check_ecc_health(
             test_name="telemetry.ecc_health",
             status=TestStatus.WARN,
             duration_seconds=time.time() - start,
-            message=(
-                "Pages pending retirement — reboot recommended"
-            ),
+            message=("Pages pending retirement — reboot recommended"),
             gpu_uuid=gpu.uuid,
             details=details,
         )
@@ -282,6 +258,4 @@ def run_ecc_health_checks(
     profile: dict[str, Any],
 ) -> list[TestResult]:
     """Execute ECC health analysis on all GPUs."""
-    return [
-        _check_ecc_health(gpu, profile) for gpu in gpu_infos
-    ]
+    return [_check_ecc_health(gpu, profile) for gpu in gpu_infos]

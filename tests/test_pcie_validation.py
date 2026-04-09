@@ -1,6 +1,5 @@
 """Tests for PCIe topology detection and degradation flagging."""
 
-
 from src.inventory.pcie_topology import PCIeInfo, get_pcie_topology
 
 

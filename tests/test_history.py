@@ -70,7 +70,7 @@ class TestSaveRun:
         with patch("src.reporting.history._HISTORY_FILE", hf):
             save_run("r", "q", mixed, 1.0)
         entry = json.loads(hf.read_text())
-        assert entry["failed"] == 2   # FAIL + ERROR both count
+        assert entry["failed"] == 2  # FAIL + ERROR both count
         assert entry["warned"] == 1
         assert entry["total"] == 5
 

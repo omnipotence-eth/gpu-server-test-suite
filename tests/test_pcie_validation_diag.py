@@ -47,9 +47,14 @@ class TestPCIeGenCheck:
     def test_gen3_max_below_gen4_fail(self):
         """PCIe gen check validates link_gen_max, not current (idle downshift)."""
         gen3_max = PCIeInfo(
-            gpu_index=0, link_gen_current=3, link_gen_max=3,
-            link_width_current=16, link_width_max=16,
-            replay_counter=0, is_degraded=False, degradation_reason="OK",
+            gpu_index=0,
+            link_gen_current=3,
+            link_gen_max=3,
+            link_width_current=16,
+            link_width_max=16,
+            replay_counter=0,
+            is_degraded=False,
+            degradation_reason="OK",
         )
         result = _check_pcie_gen([gen3_max], expected_gen=4)
         assert result.status == TestStatus.FAIL
@@ -62,9 +67,14 @@ class TestPCIeGenCheck:
 
     def test_gen5_exceeds_gen4_pass(self):
         gen5 = PCIeInfo(
-            gpu_index=0, link_gen_current=5, link_gen_max=5,
-            link_width_current=16, link_width_max=16,
-            replay_counter=0, is_degraded=False, degradation_reason="OK",
+            gpu_index=0,
+            link_gen_current=5,
+            link_gen_max=5,
+            link_width_current=16,
+            link_width_max=16,
+            replay_counter=0,
+            is_degraded=False,
+            degradation_reason="OK",
         )
         result = _check_pcie_gen([gen5], expected_gen=4)
         assert result.status == TestStatus.PASS
@@ -109,9 +119,14 @@ class TestPCIeDegradationSummary:
 
     def test_mixed_gpus(self):
         healthy2 = PCIeInfo(
-            gpu_index=1, link_gen_current=4, link_gen_max=4,
-            link_width_current=16, link_width_max=16,
-            replay_counter=0, is_degraded=False, degradation_reason="OK",
+            gpu_index=1,
+            link_gen_current=4,
+            link_gen_max=4,
+            link_width_current=16,
+            link_width_max=16,
+            replay_counter=0,
+            is_degraded=False,
+            degradation_reason="OK",
         )
         result = _check_pcie_degradation_summary([DEGRADED_PCIE, healthy2])
         assert result.status == TestStatus.FAIL

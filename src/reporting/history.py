@@ -18,9 +18,7 @@ from src.reporting.models import TestResult, TestStatus
 
 logger = logging.getLogger(__name__)
 
-_HISTORY_FILE = (
-    Path(__file__).resolve().parent.parent.parent / "reports" / ".run_history.jsonl"
-)
+_HISTORY_FILE = Path(__file__).resolve().parent.parent.parent / "reports" / ".run_history.jsonl"
 _MAX_ENTRIES = 500
 
 
@@ -49,9 +47,7 @@ def save_run(
         "run_level": run_level,
         "overall_status": _overall_status(results),
         "total": len(results),
-        "failed": sum(
-            1 for r in results if r.status in (TestStatus.FAIL, TestStatus.ERROR)
-        ),
+        "failed": sum(1 for r in results if r.status in (TestStatus.FAIL, TestStatus.ERROR)),
         "warned": sum(1 for r in results if r.status == TestStatus.WARN),
         "skipped": sum(1 for r in results if r.status == TestStatus.SKIP),
         "duration_s": round(duration_seconds, 2),

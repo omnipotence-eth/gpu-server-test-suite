@@ -86,6 +86,7 @@ class TestECCMode:
         gpu = mock_gpu_info
         # Create a copy with ECC enabled
         from dataclasses import replace
+
         gpu_ecc = replace(gpu, ecc_mode="enabled")
         profile = {"ecc_supported": True, "ecc_expected": True}
         result = _check_ecc_mode([gpu_ecc], profile)
@@ -93,6 +94,7 @@ class TestECCMode:
 
     def test_ecc_wrong_mode_fail(self, mock_gpu_info):
         from dataclasses import replace
+
         gpu_ecc = replace(mock_gpu_info, ecc_mode="disabled")
         profile = {"ecc_supported": True, "ecc_expected": True}
         result = _check_ecc_mode([gpu_ecc], profile)

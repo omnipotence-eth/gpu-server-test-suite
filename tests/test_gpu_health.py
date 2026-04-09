@@ -72,9 +72,7 @@ class TestClocksResponsive:
         assert result.status == TestStatus.PASS
 
     def test_clocks_stuck_fail(self, mock_gpu_info):
-        stuck_gpu = replace(
-            mock_gpu_info, clock_graphics_max_mhz=0, clock_memory_max_mhz=0
-        )
+        stuck_gpu = replace(mock_gpu_info, clock_graphics_max_mhz=0, clock_memory_max_mhz=0)
         result = _check_clocks_responsive([stuck_gpu])
         assert result.status == TestStatus.FAIL
         assert result.failure_code == "DIAG-101"

@@ -66,7 +66,7 @@ def _measure_h2d_bandwidth(
             _ = host_tensor.to(device, non_blocking=False)
             torch.cuda.synchronize(device)
             t1 = time.perf_counter()
-            total_time += (t1 - t0)
+            total_time += t1 - t0
 
         avg_time = total_time / iterations
         bandwidth_gibs = (transfer_bytes / (1024**3)) / avg_time
@@ -87,8 +87,7 @@ def _measure_h2d_bandwidth(
                 test_name="pcie_bandwidth.h2d",
                 status=TestStatus.FAIL,
                 duration_seconds=time.time() - start,
-                message=f"H2D bandwidth low: {bandwidth_gibs:.2f} GiB/s "
-                        f"(min: {min_gibs} GiB/s)",
+                message=f"H2D bandwidth low: {bandwidth_gibs:.2f} GiB/s (min: {min_gibs} GiB/s)",
                 failure_code="DIAG-400",
                 gpu_uuid=gpu.uuid,
                 details=details,
@@ -97,8 +96,7 @@ def _measure_h2d_bandwidth(
             test_name="pcie_bandwidth.h2d",
             status=TestStatus.PASS,
             duration_seconds=time.time() - start,
-            message=f"H2D bandwidth OK: {bandwidth_gibs:.2f} GiB/s "
-                    f"(min: {min_gibs} GiB/s)",
+            message=f"H2D bandwidth OK: {bandwidth_gibs:.2f} GiB/s (min: {min_gibs} GiB/s)",
             gpu_uuid=gpu.uuid,
             details=details,
         )
@@ -159,7 +157,7 @@ def _measure_d2h_bandwidth(
             _ = device_tensor.to("cpu", non_blocking=False)
             torch.cuda.synchronize(device)
             t1 = time.perf_counter()
-            total_time += (t1 - t0)
+            total_time += t1 - t0
 
         avg_time = total_time / iterations
         bandwidth_gibs = (transfer_bytes / (1024**3)) / avg_time
@@ -180,8 +178,7 @@ def _measure_d2h_bandwidth(
                 test_name="pcie_bandwidth.d2h",
                 status=TestStatus.FAIL,
                 duration_seconds=time.time() - start,
-                message=f"D2H bandwidth low: {bandwidth_gibs:.2f} GiB/s "
-                        f"(min: {min_gibs} GiB/s)",
+                message=f"D2H bandwidth low: {bandwidth_gibs:.2f} GiB/s (min: {min_gibs} GiB/s)",
                 failure_code="DIAG-401",
                 gpu_uuid=gpu.uuid,
                 details=details,
@@ -190,8 +187,7 @@ def _measure_d2h_bandwidth(
             test_name="pcie_bandwidth.d2h",
             status=TestStatus.PASS,
             duration_seconds=time.time() - start,
-            message=f"D2H bandwidth OK: {bandwidth_gibs:.2f} GiB/s "
-                    f"(min: {min_gibs} GiB/s)",
+            message=f"D2H bandwidth OK: {bandwidth_gibs:.2f} GiB/s (min: {min_gibs} GiB/s)",
             gpu_uuid=gpu.uuid,
             details=details,
         )

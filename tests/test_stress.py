@@ -28,8 +28,10 @@ class TestComputeStress:
     def test_skip_no_cuda(self):
         with patch("src.diagnostics.compute_stress.torch", _mock_no_cuda()):
             result = _run_compute_stress(
-                MOCK_GPU_INFO, duration_seconds=5,
-                min_utilization_pct=95, profile={},
+                MOCK_GPU_INFO,
+                duration_seconds=5,
+                min_utilization_pct=95,
+                profile={},
             )
         assert result.status == TestStatus.SKIP
         assert result.test_name == "compute_stress.sustained"
@@ -73,8 +75,11 @@ class TestPowerTest:
     def test_skip_no_cuda(self):
         with patch("src.diagnostics.power_test.torch", _mock_no_cuda()):
             result = _run_power_stress(
-                MOCK_GPU_INFO, target_pct=90, duration_seconds=5,
-                tolerance_pct=5, profile={"tdp_watts": 300},
+                MOCK_GPU_INFO,
+                target_pct=90,
+                duration_seconds=5,
+                tolerance_pct=5,
+                profile={"tdp_watts": 300},
             )
         assert result.status == TestStatus.SKIP
         assert result.test_name == "power_test.sustained_power"

@@ -62,12 +62,10 @@ def _parse_topo_matrix(topo_output: str) -> dict:
         return {"parsed": False, "reason": "Header not found"}
 
     headers = lines[header_idx].split()
-    gpu_names = [
-        h for h in headers if h.startswith("GPU")
-    ]
+    gpu_names = [h for h in headers if h.startswith("GPU")]
 
     matrix = {}
-    for line in lines[header_idx + 1:]:
+    for line in lines[header_idx + 1 :]:
         parts = line.split()
         if not parts or not parts[0].startswith("GPU"):
             continue
@@ -83,11 +81,13 @@ def _parse_topo_matrix(topo_output: str) -> dict:
     for src, conns in matrix.items():
         for dst, link_type in conns.items():
             if link_type.startswith("NV"):
-                nvlink_pairs.append({
-                    "src": src,
-                    "dst": dst,
-                    "link_type": link_type,
-                })
+                nvlink_pairs.append(
+                    {
+                        "src": src,
+                        "dst": dst,
+                        "link_type": link_type,
+                    }
+                )
 
     return {
         "parsed": True,
@@ -122,9 +122,7 @@ def _query_numa_affinity() -> dict[int, int]:
                 bus_id = parts[1]
                 # Try to read NUMA node from sysfs
                 try:
-                    numa_path = (
-                        f"/sys/bus/pci/devices/{bus_id}/numa_node"
-                    )
+                    numa_path = f"/sys/bus/pci/devices/{bus_id}/numa_node"
                     with open(numa_path) as f:
                         numa_node = int(f.read().strip())
                     affinity[gpu_idx] = numa_node
@@ -160,10 +158,7 @@ def _check_topology(
             test_name="interconnect.topology_map",
             status=TestStatus.WARN,
             duration_seconds=time.time() - start,
-            message=(
-                f"Topology detection limited: "
-                f"{topo_parsed.get('reason', 'unknown')}"
-            ),
+            message=(f"Topology detection limited: {topo_parsed.get('reason', 'unknown')}"),
             details=details,
         )
 
@@ -173,9 +168,7 @@ def _check_topology(
             test_name="interconnect.topology_map",
             status=TestStatus.FAIL,
             duration_seconds=time.time() - start,
-            message=(
-                "NVLink expected but not detected in topology"
-            ),
+            message=("NVLink expected but not detected in topology"),
             failure_code="DIAG-970",
             details=details,
         )
@@ -198,8 +191,7 @@ def _check_topology(
             status=TestStatus.WARN,
             duration_seconds=time.time() - start,
             message=(
-                f"Unbalanced NUMA affinity: {dict(numa_affinity)} "
-                f"— may impact memory bandwidth"
+                f"Unbalanced NUMA affinity: {dict(numa_affinity)} — may impact memory bandwidth"
             ),
             details=details,
         )
@@ -213,10 +205,7 @@ def _check_topology(
         test_name="interconnect.topology_map",
         status=TestStatus.PASS,
         duration_seconds=time.time() - start,
-        message=(
-            f"Topology mapped: {len(gpu_infos)} GPU(s)"
-            f"{nvlink_info}"
-        ),
+        message=(f"Topology mapped: {len(gpu_infos)} GPU(s){nvlink_info}"),
         details=details,
     )
 

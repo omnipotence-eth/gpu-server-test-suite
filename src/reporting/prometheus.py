@@ -53,27 +53,39 @@ class MetricsStore:
         self._registry = CollectorRegistry()
 
         self._temp = Gauge(
-            "gpu_temperature_celsius", "Current GPU temperature", ["gpu"],
+            "gpu_temperature_celsius",
+            "Current GPU temperature",
+            ["gpu"],
             registry=self._registry,
         )
         self._power = Gauge(
-            "gpu_power_draw_watts", "Current GPU power draw", ["gpu"],
+            "gpu_power_draw_watts",
+            "Current GPU power draw",
+            ["gpu"],
             registry=self._registry,
         )
         self._mem_used = Gauge(
-            "gpu_memory_used_mib", "GPU VRAM usage in MiB", ["gpu"],
+            "gpu_memory_used_mib",
+            "GPU VRAM usage in MiB",
+            ["gpu"],
             registry=self._registry,
         )
         self._clock = Gauge(
-            "gpu_clock_graphics_mhz", "GPU graphics clock in MHz", ["gpu"],
+            "gpu_clock_graphics_mhz",
+            "GPU graphics clock in MHz",
+            ["gpu"],
             registry=self._registry,
         )
         self._ecc_sbe = Gauge(
-            "gpu_ecc_sbe_total", "Volatile single-bit ECC error count", ["gpu_uuid"],
+            "gpu_ecc_sbe_total",
+            "Volatile single-bit ECC error count",
+            ["gpu_uuid"],
             registry=self._registry,
         )
         self._ecc_dbe = Gauge(
-            "gpu_ecc_dbe_total", "Volatile double-bit ECC error count", ["gpu_uuid"],
+            "gpu_ecc_dbe_total",
+            "Volatile double-bit ECC error count",
+            ["gpu_uuid"],
             registry=self._registry,
         )
         self._diag_status = Gauge(
@@ -83,17 +95,21 @@ class MetricsStore:
             registry=self._registry,
         )
         self._diag_duration = Gauge(
-            "gpu_diagnostic_duration_seconds", "Diagnostic test duration", ["test"],
+            "gpu_diagnostic_duration_seconds",
+            "Diagnostic test duration",
+            ["test"],
             registry=self._registry,
         )
         # Named "gpu_diagnostic_run" so prometheus_client appends "_total"
         # yielding the metric name "gpu_diagnostic_run_total" in output.
         self._run_total = Counter(
-            "gpu_diagnostic_run", "Total diagnostic runs",
+            "gpu_diagnostic_run",
+            "Total diagnostic runs",
             registry=self._registry,
         )
         self._last_run = Gauge(
-            "gpu_diagnostic_last_run_timestamp", "Timestamp of last diagnostic run",
+            "gpu_diagnostic_last_run_timestamp",
+            "Timestamp of last diagnostic run",
             registry=self._registry,
         )
 
@@ -119,19 +135,15 @@ class MetricsStore:
             self._last_run.set(time.time())
             for r in results:
                 gpu_label = r.gpu_uuid or ""
-                self._diag_status.labels(
-                    test=r.test_name, gpu_uuid=gpu_label
-                ).set(_STATUS_VALUES.get(r.status, 0))
+                self._diag_status.labels(test=r.test_name, gpu_uuid=gpu_label).set(
+                    _STATUS_VALUES.get(r.status, 0)
+                )
                 self._diag_duration.labels(test=r.test_name).set(r.duration_seconds)
 
                 if "ecc_health" in r.test_name and r.gpu_uuid and r.details:
                     volatile = r.details.get("volatile", {})
-                    self._ecc_sbe.labels(gpu_uuid=r.gpu_uuid).set(
-                        volatile.get("sbe", 0)
-                    )
-                    self._ecc_dbe.labels(gpu_uuid=r.gpu_uuid).set(
-                        volatile.get("dbe", 0)
-                    )
+                    self._ecc_sbe.labels(gpu_uuid=r.gpu_uuid).set(volatile.get("sbe", 0))
+                    self._ecc_dbe.labels(gpu_uuid=r.gpu_uuid).set(volatile.get("dbe", 0))
 
     def generate_latest(self) -> bytes:
         """Return Prometheus exposition format bytes."""

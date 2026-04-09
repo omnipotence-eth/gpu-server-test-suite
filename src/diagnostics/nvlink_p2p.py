@@ -61,9 +61,7 @@ def _measure_p2p_bandwidth(
         src_device = torch.device(f"cuda:{src_idx}")
         dst_device = torch.device(f"cuda:{dst_idx}")
 
-        src_tensor = torch.randn(
-            num_elements, dtype=torch.float32, device=src_device
-        )
+        src_tensor = torch.randn(num_elements, dtype=torch.float32, device=src_device)
 
         # Warm up
         dst_tensor = src_tensor.to(dst_device)
@@ -81,9 +79,7 @@ def _measure_p2p_bandwidth(
 
         avg_time = elapsed / iterations
         size_bytes = num_elements * 4
-        bandwidth_gibs = (
-            size_bytes / avg_time / (1024**3)
-        )
+        bandwidth_gibs = size_bytes / avg_time / (1024**3)
 
         del src_tensor
         torch.cuda.empty_cache()
@@ -111,20 +107,21 @@ def _test_gpu_pair(
     access = _check_p2p_access(gpu_a.index, gpu_b.index)
 
     if not access["supported"]:
-        results.append(TestResult(
-            test_name="interconnect.p2p_access",
-            status=TestStatus.WARN,
-            duration_seconds=time.time() - start,
-            message=(
-                f"P2P not available GPU {gpu_a.index} → "
-                f"GPU {gpu_b.index}: {access['reason']}"
-            ),
-            details={
-                "src_gpu": gpu_a.index,
-                "dst_gpu": gpu_b.index,
-                **access,
-            },
-        ))
+        results.append(
+            TestResult(
+                test_name="interconnect.p2p_access",
+                status=TestStatus.WARN,
+                duration_seconds=time.time() - start,
+                message=(
+                    f"P2P not available GPU {gpu_a.index} → GPU {gpu_b.index}: {access['reason']}"
+                ),
+                details={
+                    "src_gpu": gpu_a.index,
+                    "dst_gpu": gpu_b.index,
+                    **access,
+                },
+            )
+        )
         return results
 
     thresholds = profile.get("thresholds", {})
@@ -140,38 +137,41 @@ def _test_gpu_pair(
     fwd_time = time.time() - fwd_start
 
     if "error" in fwd:
-        results.append(TestResult(
-            test_name="interconnect.p2p_bandwidth",
-            status=TestStatus.ERROR,
-            duration_seconds=fwd_time,
-            message=(
-                f"P2P measurement failed GPU {gpu_a.index} → "
-                f"GPU {gpu_b.index}: {fwd['error']}"
-            ),
-            failure_code="DIAG-950",
-        ))
+        results.append(
+            TestResult(
+                test_name="interconnect.p2p_bandwidth",
+                status=TestStatus.ERROR,
+                duration_seconds=fwd_time,
+                message=(
+                    f"P2P measurement failed GPU {gpu_a.index} → GPU {gpu_b.index}: {fwd['error']}"
+                ),
+                failure_code="DIAG-950",
+            )
+        )
         return results
 
     fwd_bw = fwd["bandwidth_gibs"]
     fwd_status = TestStatus.PASS if fwd_bw >= min_bw else TestStatus.FAIL
 
     link_type = "NVLink" if nvlink_expected else "PCIe P2P"
-    results.append(TestResult(
-        test_name="interconnect.p2p_bandwidth",
-        status=fwd_status,
-        duration_seconds=fwd_time,
-        message=(
-            f"{link_type} GPU {gpu_a.index} → GPU {gpu_b.index}: "
-            f"{fwd_bw:.1f} GiB/s "
-            f"(min: {min_bw} GiB/s)"
-        ),
-        failure_code="DIAG-951" if fwd_status == TestStatus.FAIL else "",
-        details={
-            "direction": f"{gpu_a.index}->{gpu_b.index}",
-            "link_type": link_type,
-            **fwd,
-        },
-    ))
+    results.append(
+        TestResult(
+            test_name="interconnect.p2p_bandwidth",
+            status=fwd_status,
+            duration_seconds=fwd_time,
+            message=(
+                f"{link_type} GPU {gpu_a.index} → GPU {gpu_b.index}: "
+                f"{fwd_bw:.1f} GiB/s "
+                f"(min: {min_bw} GiB/s)"
+            ),
+            failure_code="DIAG-951" if fwd_status == TestStatus.FAIL else "",
+            details={
+                "direction": f"{gpu_a.index}->{gpu_b.index}",
+                "link_type": link_type,
+                **fwd,
+            },
+        )
+    )
 
     # Reverse direction: B → A
     rev_start = time.time()
@@ -180,38 +180,33 @@ def _test_gpu_pair(
 
     if "error" not in rev:
         rev_bw = rev["bandwidth_gibs"]
-        rev_status = (
-            TestStatus.PASS if rev_bw >= min_bw
-            else TestStatus.FAIL
-        )
+        rev_status = TestStatus.PASS if rev_bw >= min_bw else TestStatus.FAIL
 
         # Check for asymmetry (>20% difference)
-        asymmetry_pct = (
-            abs(fwd_bw - rev_bw) / max(fwd_bw, rev_bw) * 100
-        )
+        asymmetry_pct = abs(fwd_bw - rev_bw) / max(fwd_bw, rev_bw) * 100
         if asymmetry_pct > 20 and rev_status == TestStatus.PASS:
             rev_status = TestStatus.WARN
 
-        results.append(TestResult(
-            test_name="interconnect.p2p_bandwidth",
-            status=rev_status,
-            duration_seconds=rev_time,
-            message=(
-                f"{link_type} GPU {gpu_b.index} → "
-                f"GPU {gpu_a.index}: "
-                f"{rev_bw:.1f} GiB/s "
-                f"(asymmetry: {asymmetry_pct:.1f}%)"
-            ),
-            failure_code=(
-                "DIAG-951" if rev_status == TestStatus.FAIL else ""
-            ),
-            details={
-                "direction": f"{gpu_b.index}->{gpu_a.index}",
-                "link_type": link_type,
-                "asymmetry_pct": round(asymmetry_pct, 1),
-                **rev,
-            },
-        ))
+        results.append(
+            TestResult(
+                test_name="interconnect.p2p_bandwidth",
+                status=rev_status,
+                duration_seconds=rev_time,
+                message=(
+                    f"{link_type} GPU {gpu_b.index} → "
+                    f"GPU {gpu_a.index}: "
+                    f"{rev_bw:.1f} GiB/s "
+                    f"(asymmetry: {asymmetry_pct:.1f}%)"
+                ),
+                failure_code=("DIAG-951" if rev_status == TestStatus.FAIL else ""),
+                details={
+                    "direction": f"{gpu_b.index}->{gpu_a.index}",
+                    "link_type": link_type,
+                    "asymmetry_pct": round(asymmetry_pct, 1),
+                    **rev,
+                },
+            )
+        )
 
     return results
 
@@ -226,16 +221,18 @@ def run_nvlink_p2p(
     For multi-GPU, tests every unique pair in both directions.
     """
     if len(gpu_infos) < 2:
-        return [TestResult(
-            test_name="interconnect.p2p_bandwidth",
-            status=TestStatus.SKIP,
-            duration_seconds=0.0,
-            message="P2P test requires 2+ GPUs (single GPU detected)",
-        )]
+        return [
+            TestResult(
+                test_name="interconnect.p2p_bandwidth",
+                status=TestStatus.SKIP,
+                duration_seconds=0.0,
+                message="P2P test requires 2+ GPUs (single GPU detected)",
+            )
+        ]
 
     results = []
     for i, gpu_a in enumerate(gpu_infos):
-        for gpu_b in gpu_infos[i + 1:]:
+        for gpu_b in gpu_infos[i + 1 :]:
             pair_results = _test_gpu_pair(gpu_a, gpu_b, profile)
             results.extend(pair_results)
 
