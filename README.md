@@ -8,6 +8,12 @@ Built for data center reliability teams, ML infrastructure engineers, and GPU fl
 
 ---
 
+## Why
+
+GPU clusters fail silently — bad ECC memory, throttled clocks, degraded PCIe links — and broken hardware burns compute budget on garbage results. This test suite catches those failures before training starts. Modeled on NVIDIA's DCGM diagnostic framework, it runs 16 hardware validation modules, exports Prometheus metrics for fleet-wide monitoring, and generates JUnit XML reports that plug directly into CI. If you manage GPU infrastructure for ML workloads, this replaces ad-hoc `nvidia-smi` checks with systematic, repeatable diagnostics.
+
+---
+
 ## Features
 
 - **Multi-level diagnostics** — Quick (deployment checks), Medium (+ PCIe, memory, telemetry), Long (+ bandwidth, stress, topology), Extended (+ NCCL, burn-in)
