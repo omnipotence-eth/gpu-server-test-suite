@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [master]
+    branches: [main]
   pull_request:
-    branches: [master]
+    branches: [main]
 
 jobs:
   lint:
@@ -16,8 +16,10 @@ jobs:
           python-version: "3.12"
       - run: pip install ruff
       - run: ruff check src/ tests/
+      - run: ruff format --check src/ tests/
 
   test:
+    needs: lint
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -31,10 +33,7 @@ jobs:
         run: |
           pip install pynvml psutil click pyyaml rich prometheus-client pytest pytest-cov ruff
       - name: Run tests
-        run: pytest tests/ -v --tb=short
-      - name: Run tests with JUnit output
-        if: always()
-        run: pytest tests/ --junitxml=test-results.xml --tb=short
+        run: pytest tests/ -v --tb=short --junitxml=test-results.xml
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
