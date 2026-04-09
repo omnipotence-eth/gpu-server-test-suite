@@ -6,34 +6,74 @@ on:
   pull_request:
     branches: [main]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   lint:
+    name: Lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - run: pip install ruff
       - run: ruff check src/ tests/
       - run: ruff format --check src/ tests/
 
-  test:
+  type-check:
+    name: Type Check
     needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: pip install mypy
+      - run: mypy --ignore-missing-imports src/
+        continue-on-error: true  # Allow initial adoption without blocking
+
+  security:
+    name: Security
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: |
+          pip install -r requirements.txt
+          pip install pip-audit bandit
+      - name: Audit dependencies for CVEs
+        run: pip-audit
+      - name: Static security analysis
+        run: bandit -r src/ -ll --quiet
+
+  test:
+    name: Test (Python ${{ matrix.python-version }})
+    needs: [type-check, security]
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.10", "3.12"]
+        python-version: ["3.11", "3.12"]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install dependencies
-        run: |
-          pip install pynvml psutil click pyyaml rich prometheus-client pytest pytest-cov ruff
-      - name: Run tests
-        run: pytest tests/ -v --tb=short --junitxml=test-results.xml
+      - run: |
+          pip install -r requirements.txt
+          pip install pytest pytest-cov
+      - name: Run tests with coverage
+        run: >
+          pytest tests/ -v --tb=short
+          --cov=src --cov-report=term-missing
+          --cov-fail-under=50
+          --junitxml=test-results.xml
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
