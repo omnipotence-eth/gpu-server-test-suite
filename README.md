@@ -340,7 +340,7 @@ ruff check src/ tests/         # Lint (all checks pass)
 
 GitHub Actions runs on every push/PR to `master`:
 - Ruff linting
-- Full test suite on Python 3.10 and 3.12
+- Full test suite on Python 3.11 and 3.13
 - JUnit XML artifact upload
 
 ---
@@ -359,7 +359,7 @@ GitHub Actions runs on every push/PR to `master`:
 | `sqlalchemy`        | Database layer (placeholder, not active)  |
 | `psycopg2-binary`   | PostgreSQL driver (placeholder)           |
 
-- Python 3.10+
+- Python 3.11+
 - NVIDIA GPU with driver installed
 - Docker + NVIDIA Container Toolkit (for containerized deployment)
 
@@ -376,6 +376,24 @@ GitHub Actions runs on every push/PR to `master`:
 **NCCL validation (simulated):** `nccl_validation.py` runs an in-process simulation of AllReduce and AllGather — it measures PCIe P2P bandwidth between GPUs but does not initialize `torch.distributed` or invoke the NCCL library. True NCCL collective op benchmarking requires multi-process execution (`torchrun`/`mpirun`) on a multi-GPU node. The current test validates computation correctness and raw P2P throughput; full NCCL integration is a planned enhancement.
 
 **Database persistence:** The `database/` directory and `sqlalchemy`/`psycopg2-binary` dependencies are included for a planned SQLAlchemy persistence layer. File-based run history is available now via `reports/.run_history.jsonl`.
+
+---
+
+## Observability
+
+The metrics exporter uses `prometheus_client` (push model via `/metrics`). OpenTelemetry (OTEL) exporter support is planned — this will enable traces, metrics, and logs via a single OTEL collector rather than a dedicated Prometheus scraper. The Prometheus endpoint will remain for backwards compatibility.
+
+---
+
+## Roadmap
+
+| Enhancement | Status |
+|---|---|
+| OpenTelemetry exporter (`opentelemetry-sdk`) | Planned |
+| ExLlamaV2 inference benchmark module | Planned |
+| TensorRT-LLM throughput benchmark (fp8 vs bf16, sm_120) | Planned |
+| NCCL true multi-process collective validation (`torchrun`) | Planned |
+| SQLAlchemy result persistence (database/ layer) | Planned |
 
 ---
 
