@@ -105,36 +105,57 @@ Requires [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-nat
 
 ## Architecture
 
-```
-src/
-├── main.py                  # CLI entry point (click-based)
-├── diagnostics/             # 16 diagnostic modules
-│   ├── deployment.py        # Driver, GPU count, model, ECC, persistence
-│   ├── gpu_health.py        # Temperature, power, VRAM, clock responsiveness
-│   ├── pcie_validation.py   # Gen, width, replay counters, degradation
-│   ├── pcie_bandwidth.py    # Host-to-device / device-to-host throughput
-│   ├── memory_test.py       # VRAM allocation + pattern verification
-│   ├── memory_bandwidth.py  # HBM bandwidth measurement
-│   ├── compute_stress.py    # SM occupancy stress test
-│   ├── sm_stress.py         # Streaming multiprocessor saturation
-│   ├── power_test.py        # Power draw under load
-│   ├── ecc_health.py        # SBE/DBE error counters, row remapping
-│   ├── xid_errors.py        # XID event log analysis
-│   ├── clock_throttle.py    # Throttle reason detection
-│   ├── nvlink_p2p.py        # NVLink peer-to-peer validation
-│   ├── nccl_validation.py   # NCCL collective ops (simulated — see Platform Notes)
-│   ├── topology_map.py      # PCIe/NVLink topology discovery
-│   └── gpu_cleanup.py       # Post-test GPU state reset
-├── inventory/               # GPU discovery and system info
-├── monitoring/              # Placeholder — daemon-based monitoring
-├── reporting/               # Prometheus, JUnit XML, history, test runner
-│   ├── prometheus.py        # prometheus_client-backed metrics exporter
-│   ├── history.py           # JSONL run history (save + load)
-│   ├── junit_xml.py         # JUnit XML for CI/CD
-│   ├── models.py            # TestResult, TestStatus, DiagnosticRun
-│   └── test_runner.py       # Test orchestration
-├── fault_injection/         # Synthetic fault simulation (5 fault types)
-└── database/                # Placeholder — SQLAlchemy result persistence
+```mermaid
+graph TD
+    CLI["main.py<br/><i>Click CLI</i>"]
+
+    CLI --> INV["inventory/<br/>GPU Discovery"]
+    CLI --> DIAG["diagnostics/<br/>16 Modules"]
+    CLI --> MON["monitoring/<br/>Live Health Monitor"]
+    CLI --> RPT["reporting/"]
+    CLI --> FI["fault_injection/<br/>5 Fault Types"]
+
+    subgraph Diagnostics
+        DIAG --> DEP["deployment<br/><small>Driver, GPU count, ECC</small>"]
+        DIAG --> HEALTH["gpu_health<br/><small>Temp, power, VRAM, clocks</small>"]
+        DIAG --> PCIE["pcie_validation<br/><small>Gen, width, replay counters</small>"]
+        DIAG --> PCIEBW["pcie_bandwidth<br/><small>H2D / D2H throughput</small>"]
+        DIAG --> MEM["memory_test<br/><small>VRAM alloc + pattern verify</small>"]
+        DIAG --> MEMBW["memory_bandwidth<br/><small>HBM bandwidth</small>"]
+        DIAG --> COMP["compute_stress<br/><small>SM occupancy stress</small>"]
+        DIAG --> SM["sm_stress<br/><small>SM saturation</small>"]
+        DIAG --> PWR["power_test<br/><small>Power draw under load</small>"]
+        DIAG --> ECC["ecc_health<br/><small>SBE/DBE, row remapping</small>"]
+        DIAG --> XID["xid_errors<br/><small>XID event log analysis</small>"]
+        DIAG --> CLK["clock_throttle<br/><small>Throttle reason detection</small>"]
+        DIAG --> NVL["nvlink_p2p<br/><small>NVLink P2P validation</small>"]
+        DIAG --> NCCL["nccl_validation<br/><small>Collective ops (simulated)</small>"]
+        DIAG --> TOPO["topology_map<br/><small>PCIe/NVLink topology</small>"]
+        DIAG --> CLEAN["gpu_cleanup<br/><small>Post-test GPU reset</small>"]
+    end
+
+    subgraph Reporting
+        RPT --> RUNNER["test_runner<br/><small>Test orchestration</small>"]
+        RPT --> PROM["prometheus<br/><small>:9835/metrics</small>"]
+        RPT --> JUNIT["junit_xml<br/><small>CI/CD reports</small>"]
+        RPT --> HIST["history<br/><small>JSONL run history</small>"]
+        RPT --> MODELS["models<br/><small>TestResult, DiagnosticRun</small>"]
+    end
+
+    subgraph Observability ["Docker Compose Stack"]
+        PROM --> PROMETHEUS["Prometheus<br/><small>:9090</small>"]
+        PROMETHEUS --> GRAFANA["Grafana<br/><small>:3000</small>"]
+    end
+
+    DB["database/<br/><small>SQLAlchemy persistence<br/>(planned)</small>"]
+    RPT --> DB
+
+    style CLI fill:#4a90d9,color:#fff
+    style DIAG fill:#76b900,color:#fff
+    style RPT fill:#e6522c,color:#fff
+    style FI fill:#d94a4a,color:#fff
+    style PROMETHEUS fill:#e6522c,color:#fff
+    style GRAFANA fill:#f2a900,color:#fff
 ```
 
 ---
