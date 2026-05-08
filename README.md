@@ -1,6 +1,6 @@
 # GPU Server Diagnostic Test Suite
 
-[![CI](https://github.com/omnipotence-eth/gpu-server-test-suite/actions/workflows/ci.yml/badge.svg)](https://github.com/omnipotence-eth/gpu-server-test-suite/actions/workflows/ci.yml)
+[![CI](https://github.com/t-timms/gpu-server-test-suite/actions/workflows/ci.yml/badge.svg)](https://github.com/t-timms/gpu-server-test-suite/actions/workflows/ci.yml)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
 [![NVIDIA GPU](https://img.shields.io/badge/NVIDIA-GPU_Diagnostics-76B900?style=flat-square&logo=nvidia)](https://developer.nvidia.com/dcgm)
 [![Prometheus](https://img.shields.io/badge/Prometheus-metrics-E6522C?style=flat-square&logo=prometheus&logoColor=white)](https://prometheus.io/)

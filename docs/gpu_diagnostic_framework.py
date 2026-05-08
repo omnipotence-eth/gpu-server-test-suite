@@ -1102,7 +1102,7 @@ def build_document():
     ))
     story.append(Paragraph(
         "Repository: "
-        "github.com/omnipotence-eth/gpu-server-test-suite",
+        "github.com/t-timms/gpu-server-test-suite",
         ParagraphStyle(
             "repo", parent=s["BodyText2"],
             alignment=TA_CENTER,
